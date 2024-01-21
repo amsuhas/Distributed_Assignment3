@@ -3,9 +3,15 @@ import time
 import asyncio
 import random
 from sortedcontainers import SortedDict
+import docker
+from http.server import ThreadingHTTPServer, SimpleHTTPRequestHandler
+import threading
+import json
+import math
 
-ports = {"server1": 8001, "server2": 8002}
-def send_get_request(host='localhost', port=8000, path='/'):
+
+# ports = {"server1": 8001, "server2": 8002}
+def send_get_request(host='localhost', port=5000, path='/'):
     connection = http.client.HTTPConnection(host, port)
     connection.request('GET', path)
     
@@ -18,7 +24,7 @@ def send_get_request(host='localhost', port=8000, path='/'):
     return response
 
 
-def send_get_request_with_timeout(host='localhost', port=8000, path='/heartbeat', timeout=0.5):
+def send_get_request_with_timeout(host='localhost', port=5000, path='/heartbeat', timeout=0.5):
     connection = http.client.HTTPConnection(host, port, timeout=timeout)
     
     try:
@@ -39,10 +45,6 @@ serv_list = []
 
 # concurrent_server_with_mutex.py
 
-from http.server import ThreadingHTTPServer, SimpleHTTPRequestHandler
-import threading
-import json
-import math
 
 
 
@@ -104,17 +106,21 @@ class SharedData:
         
 
     def rm_server(self,host_name):
-        indexes=self.serv_dict[host_name]
+        indexes=self.serv_dict[host_name][0]
         for ind in indexes:
             self.cont_hash[0]=None
             del self.serv_id_dict[ind]
         self.num_serv-=1
+        container = self.serv_dict[host_name][1]
         del self.serv_dict[host_name]
+        time.sleep(5)
+        container.stop()
+        container.remove()
 
 
 
 
-
+client = docker.from_env()
 shared_data = SharedData()
 
 # Extend SimpleHTTPRequestHandler to use shared data
@@ -159,8 +165,8 @@ class SimpleHandlerWithMutex(SimpleHTTPRequestHandler):
                         self.wfile.write(response_str.encode('utf-8'))
                         return
                     serv_listid = shared_data.get_hash(new_name)
-                    shared_data.serv_dict[new_name] = serv_listid
-
+                    container = client.containers.run("server_image", detach=True, hostname = new_name, name = new_name, network_mode='bridge')
+                    shared_data.serv_dict[new_name] = [serv_listid,container]
             self.send_response(200)
             self.send_header('Content-type', 'application/json')
             self.end_headers()
@@ -185,27 +191,21 @@ class SimpleHandlerWithMutex(SimpleHTTPRequestHandler):
                 self.wfile.write(response_str.encode('utf-8'))
                 return
             with shared_data.mutex:
+                for i in range(len(name_servs)):
+                    if(name_servs[i] not in shared_data.serv_dict):
+                        self.send_response(400)
+                        self.send_header('Content-type', 'application/json')
+                        self.end_headers()
+                        server_response = {"message": "<Error> Server not found", "status": "failure"}
+                        response_str = json.dumps(server_response)
+                        self.wfile.write(response_str.encode('utf-8'))
+                        return
                 for i in range(num_servs):
-                    # shared_data.num_serv += 1
-                    # shared_data.counter += 1
                     if(i>=len(name_servs)):
                         first_key, first_value = next(iter(shared_data.serv_dict.items()))
                         shared_data.rm_server(first_key)
-                            
                     else:
-                        if(name_servs[i] not in shared_data.serv_dict):
-                            shared_data.counter-=1
-                            shared_data.num_serv-=1
-                            self.send_response(400)
-                            self.send_header('Content-type', 'application/json')
-                            self.end_headers()
-                            server_response = {"message": "<Error> Server not found", "status": "failure"}
-                            response_str = json.dumps(server_response)
-                            self.wfile.write(response_str.encode('utf-8'))
-                            return
-                        else:
-                            shared_data.rm_server(name_servs[i])
-
+                        shared_data.rm_server(name_servs[i])
             self.send_response(200)
             self.send_header('Content-type', 'application/json')
             self.end_headers()
@@ -213,7 +213,6 @@ class SimpleHandlerWithMutex(SimpleHTTPRequestHandler):
             response_str = json.dumps(server_response)
             self.wfile.write(response_str.encode('utf-8'))
             return
-
 
     def do_GET(self):
         with shared_data.mutex:
@@ -235,9 +234,9 @@ class SimpleHandlerWithMutex(SimpleHTTPRequestHandler):
                 if serv_id == None:
                     continue
                 else:
-                    port = ports[serv_id]
-                    # response = send_get_request(serv_id, port, self.path)
-                    response = send_get_request('localhost', port, self.path)
+                    # port = ports[serv_id]
+                    response = send_get_request(serv_id, 5000, self.path)
+                    # response = send_get_request('localhost', port, self.path)
                     self.send_response(response.status)
                     self.send_header('Content-type', response.getheader('Content-type'))
                     self.end_headers()
@@ -246,10 +245,10 @@ class SimpleHandlerWithMutex(SimpleHTTPRequestHandler):
 
 
 if __name__ == '__main__':
-    server_address = ('', 8000)
+    server_address = ('', 5000)
     httpd = ThreadingHTTPServer(server_address, SimpleHandlerWithMutex)
     
-    print('Starting server on port 8000...')
+    print('Starting server on port 5000...')
     try:
         httpd.serve_forever()
     except KeyboardInterrupt:
