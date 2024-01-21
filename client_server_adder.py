@@ -3,7 +3,7 @@
 import http.client
 import json
 
-def send_get_request(host='localhost', port=8000, path='/add'):
+def send_get_request(host='load_balancer', port=5000, path='/add'):
     connection = http.client.HTTPConnection(host, port)
     payload = {"n": 2, "hostnames": ["server1", "server2"]}
     json_data = json.dumps(payload)

@@ -1,6 +1,9 @@
 # server.py
 import json
+import os
 from http.server import BaseHTTPRequestHandler, HTTPServer
+
+server_id = os.environ.get('ID')
 
 class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
     def do_GET(self):
@@ -9,7 +12,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
             self.send_response(200)
             self.send_header('Content-type', 'application/json')
             self.end_headers()
-            server_response = {"text": "Hello from server!"}
+            server_response = {"text": "Hello from server " + server_id + "!"}
             response_str = json.dumps(server_response)
             self.wfile.write(response_str.encode('utf-8'))
             return
@@ -29,7 +32,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
             return
         
 
-def run(server_class=HTTPServer, handler_class=SimpleHTTPRequestHandler, port=8001):
+def run(server_class=HTTPServer, handler_class=SimpleHTTPRequestHandler, port=5000):
     server_address = ('', port)
     httpd = server_class(server_address, handler_class)
     print(f'Starting server on port {port}...')

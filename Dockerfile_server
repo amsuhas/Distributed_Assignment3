@@ -1,0 +1,13 @@
+# Use an official python runtime as a parent image
+FROM python:3
+
+# Set the working directory 
+WORKDIR /usr/src/app
+
+COPY requirements.txt ./
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY . .
+
+CMD [ "python", "./dummy_server.py" ]
+
