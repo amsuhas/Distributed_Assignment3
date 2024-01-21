@@ -2,7 +2,9 @@ import http.client
 import time
 import asyncio
 import random
+from sortedcontainers import SortedDict
 
+ports = {"server1": 8001, "server2": 8002}
 def send_get_request(host='localhost', port=8000, path='/'):
     connection = http.client.HTTPConnection(host, port)
     connection.request('GET', path)
@@ -16,7 +18,7 @@ def send_get_request(host='localhost', port=8000, path='/'):
     return response
 
 
-def send_get_request_with_timeout(host='localhost', port=8000, path='/heartbeat', timeout=5):
+def send_get_request_with_timeout(host='localhost', port=8000, path='/heartbeat', timeout=0.5):
     connection = http.client.HTTPConnection(host, port, timeout=timeout)
     
     try:
@@ -52,7 +54,7 @@ class SharedData:
         self.buf_size = 512
         self.num_vservs = int(math.log2(self.buf_size))
         self.cont_hash = [[None, None] for _ in range(self.buf_size)]
-        self.serv_id_dict = {}
+        self.serv_id_dict = SortedDict()
         self.mutex = threading.Lock()
 
 
@@ -67,12 +69,12 @@ class SharedData:
                     nindex+=1
                     nindex%=self.buf_size
                 else:
-                    self.serv_id_dict[nindex]=None
+                    self.serv_id_dict[nindex]= None
                     self.cont_hash[nindex][0]=host_name
                     li.append(nindex)
                     break
                 jp+=1
-
+        print(li)
         return li
 
     def client_hash(self,r_id):
@@ -87,14 +89,15 @@ class SharedData:
                 self.cont_hash[nindex][1]=r_id
                 break
             jp+=1
-        n_index += 1
-        n_index %= self.buf_size
+        nindex += 1
+        nindex %= self.buf_size
+        print(self.serv_id_dict)
         if(len(self.serv_id_dict) != 0):
-            lower_bound_key = self.serv_id_dict.bisect_left(n_index)
+            lower_bound_key = self.serv_id_dict.bisect_left(nindex)
             if lower_bound_key == len(self.serv_id_dict):
-                return self.cont_hash[self.serv_id_dict[0]][0]
+                return self.cont_hash[self.serv_id_dict.iloc[0]][0]
             else:
-                self.cont_hash[self.serv_id_dict.iloc[lower_bound_key]][0]
+                return self.cont_hash[self.serv_id_dict.iloc[lower_bound_key]][0]
 
         else:
             return None
@@ -104,7 +107,7 @@ class SharedData:
         indexes=self.serv_dict[host_name]
         for ind in indexes:
             self.cont_hash[0]=None
-            del self.serv_id_dict[host_name]
+            del self.serv_id_dict[ind]
         self.num_serv-=1
         del self.serv_dict[host_name]
 
@@ -121,8 +124,9 @@ class SimpleHandlerWithMutex(SimpleHTTPRequestHandler):
         if(self.path == '/add'):
             content_length = int(self.headers['Content-Length'])
             content = self.rfile.read(content_length).decode('utf-8')
+            content = json.loads(content)
             num_servs = int(content["n"])
-            name_servs = content["replicas"]
+            name_servs = content["hostnames"]
             if(len(name_servs) > num_servs):
                 self.send_response(400)
                 self.send_header('Content-type', 'application/json')
@@ -131,22 +135,22 @@ class SimpleHandlerWithMutex(SimpleHTTPRequestHandler):
                 response_str = json.dumps(server_response)
                 self.wfile.write(response_str.encode('utf-8'))
                 return
-            with self.shared_data.mutex:
+            with shared_data.mutex:
                 for i in range(num_servs):
-                    self.shared_data.num_serv += 1
-                    self.shared_data.counter += 1
+                    shared_data.num_serv += 1
+                    shared_data.counter += 1
                     if(i>=len(name_servs)):
-                        new_name = "server" + self.shared_data.counter
+                        new_name = "server" + shared_data.counter
                     else:
-                        if(name_servs[i] not in self.shared_data.serv_dict):
+                        if(name_servs[i] not in shared_data.serv_dict):
                             new_name = name_servs[i]
                         else:
-                            new_name = "server" + self.shared_data.counter
+                            new_name = "server" + shared_data.counter
 
                     
-                    if self.shared_data.buf_size - self.shared_data.num_vservs*self.shared_data.num_serv <self.shared_data.num_vservs:
-                        self.shared_data.counter-=1
-                        self.shared_data.num_serv-=1
+                    if shared_data.buf_size - shared_data.num_vservs*shared_data.num_serv <shared_data.num_vservs:
+                        shared_data.counter-=1
+                        shared_data.num_serv-=1
                         self.send_response(400)
                         self.send_header('Content-type', 'application/json')
                         self.end_headers()
@@ -154,13 +158,13 @@ class SimpleHandlerWithMutex(SimpleHTTPRequestHandler):
                         response_str = json.dumps(server_response)
                         self.wfile.write(response_str.encode('utf-8'))
                         return
-                    serv_listid = self.shared_data.get_hash(new_name)
-                    self.shared_data.serv_dict[new_name] = serv_listid
+                    serv_listid = shared_data.get_hash(new_name)
+                    shared_data.serv_dict[new_name] = serv_listid
 
             self.send_response(200)
             self.send_header('Content-type', 'application/json')
             self.end_headers()
-            server_response = {"message": {"N": self.shared_data.num_serv, "replicas": [hostname for hostname in self.shared_data.serv_dict.keys()]}, "status": "successful"}
+            server_response = {"message": {"N": shared_data.num_serv, "replicas": [hostname for hostname in shared_data.serv_dict.keys()]}, "status": "successful"}
             response_str = json.dumps(server_response)
             self.wfile.write(response_str.encode('utf-8'))
             return
@@ -169,8 +173,9 @@ class SimpleHandlerWithMutex(SimpleHTTPRequestHandler):
         if(self.path == '/rm'):
             content_length = int(self.headers['Content-Length'])
             content = self.rfile.read(content_length).decode('utf-8')
+            content = json.loads(content)
             num_servs = int(content["n"])
-            name_servs = content["replicas"]
+            name_servs = content["hostnames"]
             if(len(name_servs) > num_servs):
                 self.send_response(400)
                 self.send_header('Content-type', 'application/json')
@@ -179,18 +184,18 @@ class SimpleHandlerWithMutex(SimpleHTTPRequestHandler):
                 response_str = json.dumps(server_response)
                 self.wfile.write(response_str.encode('utf-8'))
                 return
-            with self.shared_data.mutex:
+            with shared_data.mutex:
                 for i in range(num_servs):
-                    # self.shared_data.num_serv += 1
-                    # self.shared_data.counter += 1
+                    # shared_data.num_serv += 1
+                    # shared_data.counter += 1
                     if(i>=len(name_servs)):
-                        first_key, first_value = next(iter(self.shared_data.serv_dict.items()))
-                        self.shared_data.rm_server(first_key)
+                        first_key, first_value = next(iter(shared_data.serv_dict.items()))
+                        shared_data.rm_server(first_key)
                             
                     else:
-                        if(name_servs[i] not in self.shared_data.serv_dict):
-                            self.shared_data.counter-=1
-                            self.shared_data.num_serv-=1
+                        if(name_servs[i] not in shared_data.serv_dict):
+                            shared_data.counter-=1
+                            shared_data.num_serv-=1
                             self.send_response(400)
                             self.send_header('Content-type', 'application/json')
                             self.end_headers()
@@ -199,38 +204,40 @@ class SimpleHandlerWithMutex(SimpleHTTPRequestHandler):
                             self.wfile.write(response_str.encode('utf-8'))
                             return
                         else:
-                            self.shared_data.rm_server(name_servs[i])
+                            shared_data.rm_server(name_servs[i])
 
             self.send_response(200)
             self.send_header('Content-type', 'application/json')
             self.end_headers()
-            server_response = {"message": {"N": self.shared_data.num_serv, "replicas": [hostname for hostname in self.shared_data.serv_dict.keys()]}, "status": "successful"}
+            server_response = {"message": {"N": shared_data.num_serv, "replicas": [hostname for hostname in shared_data.serv_dict.keys()]}, "status": "successful"}
             response_str = json.dumps(server_response)
             self.wfile.write(response_str.encode('utf-8'))
             return
 
 
     def do_GET(self):
-        with self.shared_data.mutex:
-            self.shared_data.counter += 1
-            counter_value = self.shared_data.counter
+        with shared_data.mutex:
+            shared_data.counter += 1
+            counter_value = shared_data.counter
 
         if(self.path == '/rep'):
             self.send_response(200)
             self.send_header('Content-type', 'application/json')
             self.end_headers()
-            server_response = {"message": {"N": self.shared_data.num_serv, "replicas": [hostname for hostname in self.shared_data.serv_dict.keys()]}, "status": "successful"}
+            server_response = {"message": {"N": shared_data.num_serv, "replicas": [hostname for hostname in shared_data.serv_dict.keys()]}, "status": "successful"}
             response_str = json.dumps(server_response)
             self.wfile.write(response_str.encode('utf-8'))
             return
         else:
-            rid = random.randrange(1, 1000000, 1)
+            rid = random.randrange(99999, 1000000, 1)
             while(1):
-                serv_id = self.shared_data.client_hash(rid)
+                serv_id = shared_data.client_hash(rid)
                 if serv_id == None:
                     continue
                 else:
-                    response = send_get_request(serv_id, 8001, self.path)
+                    port = ports[serv_id]
+                    # response = send_get_request(serv_id, port, self.path)
+                    response = send_get_request('localhost', port, self.path)
                     self.send_response(response.status)
                     self.send_header('Content-type', response.getheader('Content-type'))
                     self.end_headers()
