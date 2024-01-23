@@ -166,7 +166,7 @@ class SimpleHandlerWithMutex(SimpleHTTPRequestHandler):
                         return
                     serv_listid = shared_data.get_hash(new_name)
                     environment_vars = {'ID': shared_data.counter}
-                    container = client.containers.run("server_image", detach=True, hostname = new_name, name = new_name, network_mode='bridge', environment=environment_vars)
+                    container = client.containers.run("server_image", detach=True, hostname = new_name, name = new_name, network ="my_network", environment=environment_vars)
                     shared_data.serv_dict[new_name] = [serv_listid,container]
             self.send_response(200)
             self.send_header('Content-type', 'application/json')

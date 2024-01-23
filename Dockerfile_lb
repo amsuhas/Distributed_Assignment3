@@ -9,5 +9,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
+# Run load_balancer.py when the container launches 
 CMD [ "python", "./load_balancer.py" ]
 
