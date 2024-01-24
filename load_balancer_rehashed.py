@@ -80,8 +80,15 @@ class SharedData:
     def get_hash(self,host_name):
         li=[]
         for j in range(self.num_vservs):
-            nindex=(self.counter*self.counter + j*j + 2*j + 25)
-            nindex %= self.buf_size
+            prime_multiplier = 37
+            magic_number = 0x5F3759DF
+            constant_addition = 11
+
+            nindex = ((self.counter*self.counter + j*j + 2 * j + 25) * prime_multiplier) ^ magic_number
+            nindex = (nindex + constant_addition) % self.buf_size
+            nindex = (nindex ^ (nindex & (nindex ^ (nindex - 1)))) % self.buf_size  # Bitwise AND operation
+            nindex+=self.buf_size
+            nindex%=self.buf_size
             jp=0
             while(jp<self.buf_size):
                 if self.cont_hash[nindex][0]!=None:
@@ -97,8 +104,15 @@ class SharedData:
         return li
 
     def client_hash(self,r_id):
-        nindex = r_id*r_id + 2*r_id + 17
-        nindex %= self.buf_size
+        prime_multiplier = 31
+        magic_number = 0x5F3759DF
+        constant_addition = 7
+
+        nindex = ((r_id + 2 * r_id + 17) * prime_multiplier) ^ magic_number
+        nindex = (nindex + constant_addition) % self.buf_size
+        nindex = (nindex ^ (nindex & (nindex ^ (nindex - 1)))) % self.buf_size  # Bitwise AND operation
+        nindex+=self.buf_size
+        nindex%=self.buf_size
         jp=0
         while(jp<self.buf_size):
             if self.cont_hash[nindex][1]!=None:
@@ -111,7 +125,7 @@ class SharedData:
         nindex += 1
         nindex %= self.buf_size
         # print(self.serv_id_dict)
-        if(len(self.serv_id_dict) != 0):
+        if(jp!=512 and len(self.serv_id_dict) != 0):
             lower_bound_key = self.serv_id_dict.bisect_left(nindex)
             if lower_bound_key == len(self.serv_id_dict):
                 return self.cont_hash[self.serv_id_dict.iloc[0]][0], ((nindex-1)+self.buf_size)%self.buf_size
@@ -270,6 +284,10 @@ class SimpleHandlerWithMutex(SimpleHTTPRequestHandler):
             return
 
     def do_GET(self):
+        with shared_data.mutex:
+            shared_data.counter += 1
+            counter_value = shared_data.counter
+
         if(self.path == '/rep'):
             self.send_response(200)
             self.send_header('Content-type', 'application/json')

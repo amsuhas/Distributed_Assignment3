@@ -4,11 +4,12 @@ FROM python:3
 # Set the working directory 
 WORKDIR /usr/src/app
 
+# copy the requirements file and install the dependencies
 COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 
+# copy the contents of current directory to the container
 COPY . .
 
 # Run load_balancer.py when the container launches 
 # CMD ["bash", "-c", "python load_balancer.py > logs"]
-# CMD ["python", "client_server_adder.py"]
