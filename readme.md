@@ -85,7 +85,26 @@ Used a different method of mixing bits by combining addition and XOR operations.
 
 
 # Analysis
-![alt text](https://github.com/ShahDhruv777/Distributed_Assignment1/blob/main/Analysis-plots/modified-load-balancer/bar.png?raw=true)
+## Load Balancer (original)
+### Bar Graph
+![Bar Graph](Analysis-plots/original-load-balancer/bar.png)
+
+### Average (for N=2-6)
+![Average Graph](Analysis-plots/original-load-balancer/line_chart_avg.png)
+
+### Standard Deviation (for N=2-6)
+![Standard Deviation Graph](Analysis-plots/original-load-balancer/line_chart_dev.png)
+
+## Load Balancer (Modified Hash Function)
+### Bar Graph
+![Bar Graph](Analysis-plots/modified-load-balancer/bar.png)
+
+### Average (for N=2-6)
+![Average Graph](Analysis-plots/modified-load-balancer/line_chart_avg.png)
+
+### Standard Deviation (for N=2-6)
+![Standard Deviation Graph](Analysis-plots/modified-load-balancer/line_chart_dev.png)
+
 
 
 
