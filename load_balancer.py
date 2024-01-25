@@ -41,9 +41,11 @@ def send_get_request_with_timeout(host_name='localhost', port=5000, path='/'):
         with shared_data.mutex:
             shared_data.rm_server(host_name)
             shared_data.add_server()
-        print(e)
-        print("ERROR!! Heartbeat response not received from " + host_name)
+            print("ERROR!! Heartbeat response not received from " + host_name)
+            new_name = "server" + str(shared_data.counter)
+            print("Spawned new server " + new_name)
 
+        # print(e)
 def thread_heartbeat():
     while(1):
         with shared_data.mutex:
