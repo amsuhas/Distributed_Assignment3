@@ -13,3 +13,5 @@ COPY . .
 
 # Run load_balancer.py when the container launches 
 CMD ["bash", "-c", "python load_balancer.py > logs"]
+
+#hello

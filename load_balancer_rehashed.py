@@ -12,6 +12,14 @@ import threading
 import copy
 import os
 
+connection = mysql.connector.connect(
+    host="localhost",
+    database="Metadata"
+)
+
+cursor = connection.cursor()   
+
+
 num_retries = 3
 
 # ports = {"server1": 8001, "server2": 8002}
@@ -62,6 +70,42 @@ def thread_heartbeat():
 serv_list = []
 
 
+class consistent_hashing:
+    def __init__(self):
+        self.cont_hash = [[None, None] for _ in range(512)]
+        self.serv_id_dict = SortedDict()
+        self.num_vservs = int(math.log2(512))
+        self.buf_size = 512
+        self.counter = 0
+        self.serv_dict = {}
+        self.num_serv = 0
+        self.mutex = threading.Lock()
+    
+    def get_hash(self,host_name):
+        li=[]
+        for j in range(self.num_vservs):
+            prime_multiplier = 37
+            magic_number = 0x5F3759DF
+            constant_addition = 11
+
+            nindex = ((self.counter*self.counter + j*j + 2 * j + 25) * prime_multiplier) ^ magic_number
+            nindex = (nindex + constant_addition) % self.buf_size
+            nindex = (nindex ^ (nindex & (nindex ^ (nindex - 1)))) % self.buf_size  # Bitwise AND operation
+            nindex+=self.buf_size
+            nindex%=self.buf_size
+            jp=0
+            while(jp<self.buf_size):
+                if self.cont_hash[nindex][0]!=None:
+                    nindex+=1
+                    nindex%=self.buf_size
+                else:
+                    self.serv_id_dict[nindex]= None
+                    self.cont_hash[nindex][0]=host_name
+                    li.append(nindex)
+                    break
+                jp+=1
+        # print(li)
+        return li
 
 
 
