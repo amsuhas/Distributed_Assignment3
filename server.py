@@ -60,11 +60,17 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                 cursor.execute(query)
                 rows = cursor.fetchall()
                 res = ""
-                
-                for row in rows:
-                    res += "{" + '\"' + "Stud_id" + '\"' + ":" + str(row[0]) + "," + '\"' + "Stud_name" + '\"' + ":" + '\"' + row[1] + '\"' + "," + '\"' + "Stud_marks" + '\"' + ":"  + row[2] + "},\n"
-                response_data["data"] = "[" + res[:-2] + "]"
 
+                out_list = []
+                res = ""
+                for row in rows:
+                    res = '{' + '"' + 'Stud_id' + '"' + ':' + str(row[0]) + ',' + '"' + 'Stud_name' + '"' + ':' + '"' + row[1] + '"' + ',' + '"' + 'Stud_marks' + '"' + ':'  + row[2]  + '}'
+                    # print(res)
+                    out_list.append(res)
+                if len(out_list) > 0:
+                    out_list[-1] = out_list[-1][:-1]
+                response_data["data"] = out_list
+                # print(json.dumps(response_data).encode('utf-8'))
                 # Append data to response dictionary
                 # response_data[shard] = rows
                 # else:
@@ -167,11 +173,15 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
             out_list = []
             res = ""
             for row in rows:
-                res += "{" + '"' + "Stud_id" + '"' + ":" + str(row[0]) + "," + '"' + "Stud_name" + '"' + ":" + '"' + row[1] + '"' + "," + '"' + "Stud_marks" + '"' + ":"  + row[2]  + "}"
+                res = '{' + '\"' + 'Stud_id' + '\"' + ':' + str(row[0]) + ',' + '\"' + 'Stud_name' + '\"' + ':' + '\"' + row[1] + '\"' + ',' + '\"' + 'Stud_marks' + '\"' + ':'  + row[2]  + '}'
+                # print(res)
                 out_list.append(res)
             response_data["data"] = out_list
-            print(response_data)
-            print(json.dumps(response_data))
+            # print(json.dumps(response_data).encode('utf-8'))
+
+            # print(response_data)
+            # print(json.dumps(json.load(out_list)))
+            # print(json.dumps(json.JSONDecoder().decode(out_list)))
             # except Exception as e:
             #     print(f"Error: {e}")
             #     response_data = {"error": str(e)}

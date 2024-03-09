@@ -1,3 +1,4 @@
+from codecs import encode, decode
 import http.client
 import json
 
@@ -49,7 +50,8 @@ def send_get_request_copy(host='dummy', port=5000, path='/copy'):
     print('Response:')
     response_data = response.read().decode('utf-8')
     json_response = json.loads(response_data)
-    print(json.dumps(json_response, indent=4))
+    # print(json.dumps(json_response, indent=4))
+    print(json_response)
     print()
     connection.close()
 
@@ -68,9 +70,12 @@ def send_post_request_read(host='dummy', port=5000, path='/read'):
     response = connection.getresponse()
     print(f'Status: {response.status}')
     print('Response:')
+    # response_data = decode(encode(response_data, 'latin-1', 'backslashreplace'), 'unicode-escape')
     response_data = response.read().decode('utf-8')
+    # print(response_data)
     json_response = json.loads(response_data)
-    print(json.dumps(json_response, indent=4))
+    print(json_response)
+    # print(json.dumps(json_response, indent=4))
     print()
     connection.close()
 
