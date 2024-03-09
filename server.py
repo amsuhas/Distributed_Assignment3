@@ -60,6 +60,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                 cursor.execute(query)
                 rows = cursor.fetchall()
                 res = ""
+                
                 for row in rows:
                     res += "{" + '\"' + "Stud_id" + '\"' + ":" + str(row[0]) + "," + '\"' + "Stud_name" + '\"' + ":" + '\"' + row[1] + '\"' + "," + '\"' + "Stud_marks" + '\"' + ":"  + row[2] + "},\n"
                 response_data["data"] = "[" + res[:-2] + "]"
