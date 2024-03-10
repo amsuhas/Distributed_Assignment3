@@ -9,11 +9,13 @@ server_id = os.environ.get('ID')
 connection = mysql.connector.connect(
     host="localhost",
     user="myuser",
-    password="my",
+    password="mypass",
     database="Student_info"
 )
 
-cursor = connection.cursor()   
+cursor = connection.cursor()
+
+update_idx_dict = {}
 
 class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
     def do_GET(self):
@@ -35,7 +37,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
             content_length = int(self.headers['Content-Length'])
             post_data = self.rfile.read(content_length)
             payload = json.loads(post_data)
-
+            
             shards = payload.get('shards')
 
             # if shards is None:
@@ -56,7 +58,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
 
                 # if table_exists:
                 #     # Fetch data from corresponding MySQL table
-                query = f"SELECT * FROM {shard};"
+                query = f"SELECT * FROM {shard} LIMIT {self.update_idx_dict[shard]};"
                 cursor.execute(query)
                 rows = cursor.fetchall()
                 res = ""
@@ -113,6 +115,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
             dict['Number'] = 'INT'
             dict['String'] = 'VARCHAR(255)'
             for shard in shards:
+                update_idx_dict[shard] = 0
                 table_name = shard
                 columns = ', '.join([f"{col} {dict[dtype]}" for col, dtype in zip(schema['columns'], schema['dtypes'])])
                 print(columns)
@@ -165,7 +168,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
             # Fetch data from MySQL table corresponding to the shard and stud_id range
             response_data = {}
             # try:
-            query = f"SELECT * FROM {shard} WHERE Stud_id BETWEEN {low} AND {high};"
+            query = f"SELECT * FROM (SELECT * FROM {shard} LIMIT {self.update_idx_dict[shard]}) AS subquery WHERE Stud_id BETWEEN {low} AND {high};"
             cursor.execute(query)
             rows = cursor.fetchall()
 
@@ -208,27 +211,36 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
             #     self.wfile.write(json.dumps({"error": "Shard or curr_idx missing in the request payload"}).encode('utf-8'))
             #     return
             
-            for stud in studs_data:
-                sid = int(stud.get('Stud_id'))
-                check_query = f"SELECT COUNT(*) FROM {shard} WHERE Stud_id = {sid};"
-                cursor.execute(check_query)
-                check = cursor.fetchone()[0]
+            # for stud in studs_data:
+            #     sid = int(stud.get('Stud_id'))
+            #     check_query = f"SELECT COUNT(*) FROM {shard} WHERE Stud_id = {sid};"
+            #     cursor.execute(check_query)
+            #     check = cursor.fetchone()[0]
                 
-                if check > 0:
-                    self.send_response(400)
-                    self.end_headers()
-                    self.wfile.write(json.dumps({"error": f"Entry with Stud_id:{sid} already exists in the given shard"}).encode('utf-8'))
-                    return
+                # if check > 0:
+                #     self.send_response(400)
+                #     self.end_headers()
+                #     self.wfile.write(json.dumps({"error": f"Entry with Stud_id:{sid} already exists in the given shard"}).encode('utf-8'))
+                #     return
             
             for stud in studs_data:
                 print(stud)
                 sid = int(stud.get('Stud_id'))
                 sname = '\"' + stud.get('Stud_name') + '\"'
                 smarks = '\"' + stud.get('Stud_marks') + '\"'
-                write_query = f"INSERT INTO {shard}(Stud_id, Stud_name, Stud_marks) VALUES ({sid}, {sname}, {smarks});"
-                print(write_query)
-                cursor.execute(write_query)
-                curr_idx = curr_idx + 1
+                
+                check_query = f"SELECT COUNT(*) FROM {shard} WHERE Stud_id = {sid};"
+                cursor.execute(check_query)
+                check = cursor.fetchone()[0]
+                
+                if(check > 0):
+                    update_query = f"UPDATE {shard} SET Stud_id = {sid}, Stud_name = {sname}, Stud_marks = {smarks} WHERE Stud_id = {sid};"
+                    cursor.execute(update_query)    
+                else:
+                    write_query = f"INSERT INTO {shard}(Stud_id, Stud_name, Stud_marks) VALUES ({sid}, {sname}, {smarks});"
+                    # print(write_query)
+                    cursor.execute(write_query)
+                    curr_idx = curr_idx + 1
             connection.commit()
             self.send_response(200)
             self.send_header('Content-type', 'application/json')
@@ -240,6 +252,24 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
             }
             self.wfile.write(json.dumps(response_json).encode('utf-8'))
             return
+        
+        elif self.path == '/updateid':
+            content_length = int(self.headers['Content-Length'])
+            post_data = self.rfile.read(content_length)
+            payload = json.loads(post_data)
+            
+            shard = payload.get('shard')
+            self.update_idx_dict[shard] = int(payload.get('update_idx'))
+            
+            self.send_response(200)
+            self.send_header('Content-type', 'application/json')
+            self.end_headers()
+            response_json = {
+                "message": 'Update index updated',
+                "status": "success"
+            }
+            self.wfile.write(json.dumps(response_json).encode('utf-8'))
+            return            
         
     def do_PUT(self):
         if self.path == '/update':

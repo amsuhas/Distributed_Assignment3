@@ -18,4 +18,4 @@ RUN apt-get install -y systemctl
 
 
 # copy the contents of current directory to the container
-CMD ["bash", "-c", "chmod +x inilializer_script; ./inilializer_script;"]
+CMD ["bash", "-c", "chmod +x initializer_script_server; ./initializer_script_server;"]

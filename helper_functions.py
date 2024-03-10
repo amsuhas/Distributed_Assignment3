@@ -1,3 +1,6 @@
+from packages import *
+
+
 def send_request(host='server', port=5000, path='/config',payload={},method='POST'):
     # print(path)
     # payload = {
@@ -22,22 +25,23 @@ def send_request(host='server', port=5000, path='/config',payload={},method='POS
 
 
 
-# def client_request_sender(server_id, shard_id, path, payload, method):
-#     rid = random.randrange(99999, 1000000, 1)
-#     shard_obj = shard_id_object_mapping[shard_id]
-#     with shard_obj.mutex:
-#         serv_id, index = shard_obj.client_hash(rid)
-#     server_name = "server" + str(serv_id)
-#     response = send_request(server_name, 5000, path, payload, method)
-#     with shard_obj.mutex:
-#         shard_obj.cont_hash[index][1] = None
-#     return response
+def client_request_sender(shard_id, path, payload, method):
+    rid = random.randrange(99999, 1000000, 1)
+    shard_obj = shard_id_object_mapping[shard_id]
+    with shard_obj.mutex:
+        serv_id, index = shard_obj.client_hash(rid)
+    server_name = "server" + str(serv_id)
+    response = send_request(server_name, 5000, path, payload, method)
+    with shard_obj.mutex:
+        shard_obj.cont_hash[index][1] = None
+    return response
 
 
 
 
 
 def configure_server(server_id, shard_list):
+    global global_schema
     Payload_Json= {
     "schema": global_schema,
     "shards": shard_list,
@@ -57,10 +61,10 @@ def configure_and_setup(server_id, shard_list):
         rid = random.randrange(99999, 1000000, 1)
         shard_obj = shard_id_object_mapping[shard]
         with shard_obj.mutex:
-            response = shard_obj.client_hash(rid)
-        if response == None:
+            out = shard_obj.client_hash(rid)
+        if out == None:
             return 
-        serv_id = response[0]
+        serv_id = out[0]
         server_name = "server" + str(serv_id)
         shard_name = "sh" + str(shard)
         payload_shard_list = []
@@ -69,6 +73,8 @@ def configure_and_setup(server_id, shard_list):
             "shards": payload_shard_list
         }
         response = send_request(server_name, 5000, '/copy', payload, 'GET')
+        with shard_obj.mutex:
+            shard_obj.cont_hash[out[1]] = None
         shard_id_object_mapping[shard].add_server(server_id)
         payload = {
             "shard": shard_name,
@@ -78,34 +84,7 @@ def configure_and_setup(server_id, shard_list):
         server_name = "server" + str(server_id)   
         response = send_request(server_name, 5000, '/write', payload, 'POST')
         shard_id_object_mapping[shard].serv_dict[server_id][1] = int(response['current_idx']) 
-    return
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-def write_to_shard_replica_of_server(server_id,shard_id,data):
-    send_reqeust('server'+str(server_id), 5000, '/write',data,'POST')
-
-
-
-
-
-
-
-    
-
-
-        
+    return        
     
     
     
@@ -133,6 +112,8 @@ def send_get_request(host='localhost', port=5000, path='/'):
 
 
 def send_get_request_with_timeout(host_name='localhost', port=5000, path='/'):
+    global metadata_obj
+    global servers_obj
     try:
         connection = http.client.HTTPConnection(host_name, port, timeout=5)    
         print("Sending heartbeat request to " + host_name)
@@ -141,25 +122,35 @@ def send_get_request_with_timeout(host_name='localhost', port=5000, path='/'):
         response.read()
         connection.close()
     except Exception as e:
-        with shared_data.mutex:
-            shared_data.rm_server(host_name)
-            shared_data.add_server()
+        with servers_obj.mutex:
+            server_id = host_name[6:]
+            shard_list = metadata_obj.get_shards(server_id)
+            servers_obj.remove_server(server_id)
+            servers_obj.add_server(server_id, shard_list)
         print(e)
         print("ERROR!! Heartbeat response not received from " + host_name)
-
-
-
+    return
 
 def thread_heartbeat():
+    global servers_obj
+    print("Heartbeat thread started")
+    print(servers_obj)
     while(1):
-        with shared_data.mutex:
+        with servers_obj.mutex:
             host_list = []
-            for keys in shared_data.serv_dict:
-                host_list.append(keys)
+            for server_id in servers_obj.server_to_docker_container_map.keys():
+                host_list.append("server" + str(server_id))
             # host_list = copy.deepcopy(shared_data.serv_dict)
         for host_name in host_list:
                 send_get_request_with_timeout(host_name, 5000, '/heartbeat')
         time.sleep(5)
+
+
+
+
+
+
+
 
 
 
@@ -197,7 +188,8 @@ def server_write(shard, curr_idx, data, server_id):
     response = send_request(server_name, 5000, '/write', payload, 'POST')
     return response
 
-def server_update(shard, Stud_id, data, server_id):
+def server_update(shard, Stud_id, sid, sname, smarks, server_id):
+    data = {"Stud_id": sid, "Stud_name": sname, "Stud_marks": smarks}
     payload = {
         "shard": shard,
         "Stud_id": Stud_id,
@@ -215,3 +207,13 @@ def server_delete(shard, Stud_id, server_id):
     server_name = "server" + str(server_id)   
     response = send_request(server_name, 5000, '/delete', payload, 'DELETE')
     return response    
+
+def server_updateid(server_id, shard_id, update_idx):
+    shard = "sh" + str(shard_id)
+    payload = {
+        "shard": shard,
+        "update_idx": update_idx
+    }
+    server_name = "server" + str(server_id)   
+    response = send_request(server_name, 5000, '/updateid', payload, 'POST')
+    return response

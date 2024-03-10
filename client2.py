@@ -2,22 +2,27 @@ from codecs import encode, decode
 import http.client
 import json
 
-def send_post_request_config(host='load_balancer', port=5000, path='/init'):
-    print("/init")
+def send_post_request_config(host='server', port=5000, path='/config'):
+    print("/config")
+    # payload = {
+    #     "N":3,
+    #     "schema":{
+    #         "columns":["Stud_id","Stud_name","Stud_marks"],
+    #         "dtypes":["Number","String","String"]
+    #     },
+    #     "shards":[{"Stud_id_low":0, "Shard_id": "sh1", "Shard_size":4096},
+    #     {"Stud_id_low":4096, "Shard_id": "sh2", "Shard_size":4096},
+    #     {"Stud_id_low":8192, "Shard_id": "sh3", "Shard_size":4096},],
+    #     "servers":{
+    #         "Server0":["sh1","sh2"],
+    #         "Server1":["sh2","sh3"],
+    #         "Server2":["sh1","sh3"]
+    #     }
+    # }
     payload = {
-        "N":3,
-        "schema":{
-            "columns":["Stud_id","Stud_name","Stud_marks"],
-            "dtypes":["Number","String","String"]
-        },
-        "shards":[{"Stud_id_low":0, "Shard_id": "sh1", "Shard_size":4096},
-        {"Stud_id_low":4096, "Shard_id": "sh2", "Shard_size":4096},
-        {"Stud_id_low":8192, "Shard_id": "sh3", "Shard_size":4096},],
-        "servers":{
-            "Server0":["sh1","sh2"],
-            "Server1":["sh2","sh3"],
-            "Server2":["sh1","sh3"]
-        }
+        "schema":{"columns":["Stud_id","Stud_name","Stud_marks"],
+        "dtypes":["Number","String","String"]},
+        "shards":["sh1","sh2"]
     }
     headers = {'Content-type': 'application/json'}
     json_payload = json.dumps(payload)
@@ -161,22 +166,22 @@ if __name__ == '__main__':
     send_post_request_config()
     # send_get_request_heartbeat()
     # send_get_request_copy()
-    send_post_request_write(4)
-    send_post_request_write(2)
-    send_post_request_write(10)
-    send_post_request_write(3)
-    send_post_request_write(19)
-    send_post_request_write(16)
-    send_post_request_write(100)
+    # send_post_request_write(4)
+    # send_post_request_write(2)
+    # send_post_request_write(10)
+    # send_post_request_write(3)
+    # send_post_request_write(19)
+    # send_post_request_write(16)
+    # send_post_request_write(100)
 
-    send_post_request_read()
-    send_put_request_update(0)
-    send_post_request_read()
+    # send_post_request_read()
+    # send_put_request_update(0)
+    # send_post_request_read()
 
-    # send_get_request_copy()
-    send_post_request_read()
-    send_delete_request_del(0)
-    send_post_request_read()
-    # send_get_request_copy()
+    # # send_get_request_copy()
+    # send_post_request_read()
+    # send_delete_request_del(0)
+    # send_post_request_read()
+    # # send_get_request_copy()
 
 

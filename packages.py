@@ -11,4 +11,13 @@ import math
 import threading
 import copy
 import os
+import mysql.connector
 import Datastructures
+
+
+global global_schema
+num_retries = 3
+client = docker.from_env()
+global metadata_obj
+global servers_obj
+shard_id_object_mapping = {}

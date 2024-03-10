@@ -328,10 +328,10 @@ class SimpleHandlerWithMutex(SimpleHTTPRequestHandler):
 if __name__ == '__main__':
     server_address = ('', 5000)
     httpd = ThreadingHTTPServer(server_address, SimpleHandlerWithMutex)
-    n = int(os.environ.get('NUM_INIT_SERVER'))
-    with shared_data.mutex:
-        for _ in range(n):
-            shared_data.add_server()
+    # n = int(os.environ.get('NUM_INIT_SERVER'))
+    # with shared_data.mutex:
+    #     for _ in range(n):
+    #         shared_data.add_server()
         
     print('Starting server on port 5000...')
     try:

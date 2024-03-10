@@ -1,9 +1,11 @@
-shard_id_object_mapping = {}
-
+from packages import *
+from helper_functions import *
 
 
 connection = mysql.connector.connect(
     host="localhost",
+    user="myuser",
+    password="mypass",
     database="Metadata"
 )
 
@@ -21,21 +23,12 @@ class Metadata:
         
         # for shard in shards:
         table_name = "ShardT"
-        create_table_query = f"CREATE TABLE {table_name} (
-            Stud_id_low INT,
-            Shard_id INT,
-            Shard_size INT,
-            Valid_idx INT,
-            Update_idx INT
-        );"
+        create_table_query = f"CREATE TABLE {table_name} ( Stud_id_low INT, Shard_id INT, Shard_size INT, Valid_idx INT, Update_idx INT);"
         print(create_table_query)
         cursor.execute(create_table_query)
 
         table_name = "MapT"
-        create_table_query = f"CREATE TABLE {table_name} (
-            Shard_id INT,
-            Server_id INT
-        );"
+        create_table_query = f"CREATE TABLE {table_name} ( Shard_id INT, Server_id INT);"
         print(create_table_query)
         cursor.execute(create_table_query)
         connection.commit()
@@ -67,6 +60,43 @@ class Metadata:
         cursor.execute(select_query)
         shard_list = cursor.fetchall()
         return shard_list
+    
+    def get_shard_id(self, stud_id):
+        # also check if stud_id is within the range of the shard
+        select_query = f"SELECT Shard_id FROM ShardT WHERE Stud_id_low <= {stud_id} AND Stud_id_low + Shard_size > {stud_id};"
+        cursor.execute(select_query)
+        shard_id = cursor.fetchall()
+        if len(shard_id) == 0:
+            return None
+        return shard_id[0][0]
+    
+    def get_server_id(self, shard_id):
+        select_query = f"SELECT Server_id FROM MapT WHERE Shard_id = {shard_id};"
+        cursor.execute(select_query)
+        server_ids = cursor.fetchall()
+        return server_ids
+    
+    def get_valid_idx(self, shard_id):
+        select_query = f"SELECT Valid_idx FROM ShardT WHERE Shard_id = {shard_id};"
+        cursor.execute(select_query)
+        valid_idx = cursor.fetchall()
+        return valid_idx[0][0]
+    
+    def get_update_idx(self, shard_id):
+        select_query = f"SELECT Update_idx FROM ShardT WHERE Shard_id = {shard_id};"
+        cursor.execute(select_query)
+        update_idx = cursor.fetchall()
+        return update_idx[0][0]
+    
+    def update_valid_idx(self, shard_id, valid_idx):
+        update_query = f"UPDATE ShardT SET Valid_idx = {valid_idx} WHERE Shard_id = {shard_id};"
+        cursor.execute(update_query)
+        connection.commit()
+
+    def update_update_idx(self, shard_id, update_idx):
+        update_query = f"UPDATE ShardT SET Update_idx = {update_idx} WHERE Shard_id = {shard_id};"
+        cursor.execute(update_query)
+        connection.commit()
 
 
 
@@ -88,6 +118,7 @@ class Shards:
         self.num_vservs = int(math.log2(self.buf_size))
         self.cont_hash = [[None, None] for _ in range(self.buf_size)]
         self.serv_id_dict = SortedDict()
+        self.update_mutex = threading.Lock()
         self.mutex = threading.Lock()
 
 
@@ -99,7 +130,7 @@ class Shards:
             constant_addition = 11
 
             nindex = ((self.counter*self.counter + j*j + 2 * j + 25) * prime_multiplier) ^ magic_number
-            nindex = (nindex + constant_addition) % self.buf_size
+            nindex = (nindex + constant_addition) % self.buf_sizeresponse["current_idx"]
             nindex = (nindex ^ (nindex & (nindex ^ (nindex - 1)))) % self.buf_size  # Bitwise AND operation
             nindex+=self.buf_size
             nindex%=self.buf_size
@@ -185,6 +216,9 @@ class Shards:
 
 
 class Servers: 
+    global metadata_obj
+    def __init__(self):
+        self.mutex = threading.Lock()
     server_to_docker_container_map = {}        
 
     def add_server(self, server_id, shard_list):

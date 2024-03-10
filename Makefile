@@ -14,7 +14,7 @@ client_image:
 	docker build -f Dockerfile_client -t client_image .
 
 run_lb:
-	docker run --privileged -dit --name load_balancer --hostname load_balancer -v /var/run/docker.sock:/var/run/docker.sock --network my_network -e "NUM_INIT_SERVER=$(N)" lb_image 
+	docker run --privileged -dit --name load_balancer --hostname load_balancer -v /var/run/docker.sock:/var/run/docker.sock --network my_network lb_image 
 
 run_client:
 	docker run -dit --name client --hostname client --network my_network client_image
@@ -27,6 +27,6 @@ read_logs:
 	docker cp load_balancer:/usr/src/app/logs lb_logs
 
 run_dummy:
-	docker run -dit --name dummy --hostname dummy --network my_network dummy_image
+	docker run -dit --name dummy --hostname server --network my_network dummy_image
 	
 
