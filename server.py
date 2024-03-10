@@ -69,7 +69,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                     out_list.append(res)
                 if len(out_list) > 0:
                     out_list[-1] = out_list[-1][:-1]
-                response_data["data"] = out_list
+                response_data[shard] = out_list
                 # print(json.dumps(response_data).encode('utf-8'))
                 # Append data to response dictionary
                 # response_data[shard] = rows
@@ -229,7 +229,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                 print(write_query)
                 cursor.execute(write_query)
                 curr_idx = curr_idx + 1
-                
+            connection.commit()
             self.send_response(200)
             self.send_header('Content-type', 'application/json')
             self.end_headers()
@@ -272,7 +272,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
             
             update_query = f"UPDATE {shard} SET Stud_id = {sid}, Stud_name = {sname}, Stud_marks = {smarks} WHERE Stud_id = {stud_id};"
             cursor.execute(update_query)
-            
+            connection.commit()
             self.send_response(200)
             self.send_header('Content-type', 'application/json')
             self.end_headers()
@@ -333,3 +333,8 @@ def run(server_class=HTTPServer, handler_class=SimpleHTTPRequestHandler, port=50
 
 if __name__ == '__main__':
     run()
+
+
+
+
+# add commit end points and change the read and copy endpoints
