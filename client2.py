@@ -125,7 +125,7 @@ def send_put_request_update(index=0,host='load_balancer', port=5000, path='/upda
     payload = {
         "shard":"sh1",
         "Stud_id": index,
-        "data": {"Stud_id": index, "Stud_name": "GHI", "Stud_marks": "28"}
+        "data": {"Stud_id": 28, "Stud_name": "GHI", "Stud_marks": "28"}
     }
     headers = {'Content-type': 'application/json'}
     json_payload = json.dumps(payload)
@@ -166,8 +166,8 @@ def send_delete_request_del(index=0,host='load_balancer', port=5000, path='/del'
     print()
     connection.close()
 
-def send_updateidx(index = 2, host='load_balancer', port=5000, path='/updateidx'):
-    print("/updateidx")
+def send_updateidx(index = 2, host='load_balancer', port=5000, path='/updateid'):
+    print("/updateid")
     payload = {
         "shard":"sh1",
         "update_idx":index
@@ -176,7 +176,7 @@ def send_updateidx(index = 2, host='load_balancer', port=5000, path='/updateidx'
     json_payload = json.dumps(payload)
     
     connection = http.client.HTTPConnection(host, port)
-    connection.request('PUT', path, json_payload, headers)
+    connection.request('POST', path, json_payload, headers)
 
     response = connection.getresponse()
     print(f'Status: {response.status}')
@@ -192,7 +192,7 @@ if __name__ == '__main__':
     # send_get_request_heartbeat()
     send_get_request_copy()
     send_post_request_write(4)
-    send_updateidx(5)
+    send_updateidx(10)
     send_post_request_write(2)
     send_post_request_write(10)
     send_post_request_write(3)
@@ -201,13 +201,14 @@ if __name__ == '__main__':
     send_post_request_write(100)
 
     send_post_request_read()
-    send_put_request_update(0)
+    send_put_request_update(4)
     send_post_request_read()
 
     send_get_request_copy()
     send_post_request_read()
-    send_delete_request_del(0)
+    send_delete_request_del(19)
     send_post_request_read()
+    send_get_request_copy()
     # send_get_request_copy()
 
 

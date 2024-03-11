@@ -34,6 +34,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
             self.end_headers()
             return
         elif self.path == '/copy':
+            print("/copy")
             content_length = int(self.headers['Content-Length'])
             post_data = self.rfile.read(content_length)
             payload = json.loads(post_data)
@@ -85,6 +86,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
             self.send_header('Content-type', 'application/json')
             self.end_headers()
             response_data["status"] = "success"
+            print(response_data)
             self.wfile.write(json.dumps(response_data).encode('utf-8'))
             return
         # else:
@@ -257,6 +259,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
             return
         
         elif self.path == '/updateid':
+            print("jelly")
             content_length = int(self.headers['Content-Length'])
             post_data = self.rfile.read(content_length)
             payload = json.loads(post_data)
@@ -335,7 +338,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
             cursor.execute(check_query)
             check = cursor.fetchone()[0]
             
-            if check <= 0:
+            if check is None:
                 self.send_response(400)
                 self.end_headers()
                 self.wfile.write(json.dumps({"error": f"Entry with Stud_id:{sid} does not exist in the given shard"}).encode('utf-8'))
