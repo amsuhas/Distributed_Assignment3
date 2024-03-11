@@ -58,7 +58,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
 
                 # if table_exists:
                 #     # Fetch data from corresponding MySQL table
-                query = f"SELECT * FROM {shard} LIMIT {self.update_idx_dict[shard]};"
+                query = f"SELECT * FROM {shard} LIMIT {update_idx_dict[shard]};"
                 cursor.execute(query)
                 rows = cursor.fetchall()
                 res = ""
@@ -134,7 +134,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
             self.send_header('Content-type', 'application/json')
             self.end_headers()
             response_json = {
-                "message": ', '.join(tables_created),
+                "message": tables_created,
                 "status": "success"
             }
             self.wfile.write(json.dumps(response_json).encode('utf-8'))
@@ -168,7 +168,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
             # Fetch data from MySQL table corresponding to the shard and stud_id range
             response_data = {}
             # try:
-            query = f"SELECT * FROM (SELECT * FROM {shard} LIMIT {self.update_idx_dict[shard]}) AS subquery WHERE Stud_id BETWEEN {low} AND {high};"
+            query = f"SELECT * FROM (SELECT * FROM {shard} LIMIT {update_idx_dict[shard]}) AS subquery WHERE Stud_id BETWEEN {low} AND {high};"
             cursor.execute(query)
             rows = cursor.fetchall()
 
@@ -197,10 +197,13 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
             return
         
         elif self.path == '/write':
+            print("HI")
             content_length = int(self.headers['Content-Length'])
             post_data = self.rfile.read(content_length)
             payload = json.loads(post_data)
             
+            print("YO")
+
             shard = payload.get('shard')
             curr_idx = int(payload.get('curr_idx'))
             studs_data = payload.get('data')
@@ -259,7 +262,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
             payload = json.loads(post_data)
             
             shard = payload.get('shard')
-            self.update_idx_dict[shard] = int(payload.get('update_idx'))
+            update_idx_dict[shard] = int(payload.get('update_idx'))
             
             self.send_response(200)
             self.send_header('Content-type', 'application/json')

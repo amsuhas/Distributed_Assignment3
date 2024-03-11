@@ -239,6 +239,7 @@ class Servers:
 
     def add_server(self, server_id, shard_list):
         global metadata_obj
+        global client
         # print("Adding server" + str(server_id))
         server_name="server"+str(server_id)
         # print(server_name)
@@ -247,6 +248,7 @@ class Servers:
         metadata_obj.add_server(server_id, shard_list)
         environment_vars = {'ID': server_id}
         container = client.containers.run("server_image", detach=True, hostname = server_name, name = server_name, network ="my_network", environment=environment_vars)
+        time.sleep(5)
         self.server_to_docker_container_map[server_id] = container
         configure_and_setup(server_id, shard_list)
         return
@@ -281,7 +283,7 @@ def send_request(host='server', port=5000, path='/config',payload={},method='POS
     json_payload = json.dumps(payload)
     
     connection = http.client.HTTPConnection(host, port)
-    # print(f'Sending {method} request to {host}:{port}{path}')
+    print(f'Sending {method} request to {host}:{port}{path}')
     connection.request(method, path, json_payload, headers)
 
     response = connection.getresponse()
@@ -290,7 +292,8 @@ def send_request(host='server', port=5000, path='/config',payload={},method='POS
     print(response.read().decode('utf-8'))
     print()
     connection.close()
-    return response
+    # return response
+    return ""
 
 
 
@@ -312,12 +315,17 @@ def client_request_sender(shard_id, path, payload, method):
 
 def configure_server(server_id, shard_list):
     print(server_id)
+
+    shards = []
+    for e in shard_list:
+        shards.append("sh"+str(e))
     
     global global_schema
     Payload_Json= {
     "schema": global_schema,
-    "shards": shard_list,
+    "shards": shards,
     }
+    print(global_schema)
     print(Payload_Json)
     resp=send_request('server'+str(server_id), 5000, '/config',Payload_Json,'POST')
     return resp
@@ -515,6 +523,52 @@ class SimpleHandlerWithMutex(SimpleHTTPRequestHandler):
             shards_info = content["shards"]
             shard_server_mapping = content["servers"]
             global_schema = schema
+
+            # server_id = 0
+            # server_name="server"
+            # # print(server_name)
+            # # for shard in shard_list:
+            # #     shard_id_object_mapping[shard].add_server(server_id)
+            # # metadata_obj.add_server(server_id, shard_list)
+            # # environment_vars = {'ID': server_id}
+            # # container = client.containers.run("server_image", detach=True, hostname = server_name, name = server_name, network ="my_network", environment=environment_vars)
+            # # Payload_Json= {
+            # #     "schema": global_schema,
+            # #     "shards": shard_list,
+            # # }
+            # payload = {
+            #     "schema":{"columns":["Stud_id","Stud_name","Stud_marks"],
+            #     "dtypes":["Number","String","String"]},
+            #     "shards":["sh1","sh2"]
+            # }
+            # # print(Payload_Json)
+            # # resp=send_request('server'+str(server_id), 5000, '/config',Payload_Json,'POST')
+
+
+            # headers = {'Content-type': 'application/json'}
+            # json_payload = json.dumps(payload)
+            
+            # connection = http.client.HTTPConnection('server', 5000)
+            # print(f'Sending POST request to server:5000/config')
+            # connection.request('POST', '/config', json_payload, headers)
+            # print("Sent")
+
+            # response = connection.getresponse()
+            # print(f'Status: {response.status}')
+            # print('Response:')
+            # print(response.read().decode('utf-8'))
+            # print()
+            # connection.close()
+
+            # self.send_response(200)
+            # self.send_header('Content-type', 'application/json')
+            # self.end_headers()
+            # server_response = {"message": "Configured Database", "status": "success"}
+            # response_str = json.dumps(server_response)
+            # self.wfile.write(response_str.encode('utf-8'))
+            # return
+
+
             for shard in shards_info:
                 shard_id = shard["Shard_id"]
                 # if(shard_id[0:2]!="sh"):
