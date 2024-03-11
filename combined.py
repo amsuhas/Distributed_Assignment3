@@ -51,7 +51,7 @@ class Metadata:
         connection.commit()
 
     def add_shard(self, shard_id, shard_size,shard_id_low):
-        insert_query = f"INSERT INTO ShardT (Stud_id_low, Shard_id, Shard_size, Valid_idx, Update_idx) VALUES ({shard_id_low}, {shard_id}, {shard_size}, 0, 0);"
+        insert_query = f"INSERT INTO ShardT (Stud_id_low, Shard_id, Shard_size, Valid_idx, Update_idx) VALUES ({shard_id_low}, {shard_id}, {shard_size}, 0, -1);"
         cursor.execute(insert_query)
         connection.commit()    
     
@@ -285,19 +285,20 @@ def send_request(host='server', port=5000, path='/config',payload={},method='POS
     
     connection = http.client.HTTPConnection(host, port)
     print(f'Sending {method} request to {host}:{port}{path}')
-    print(payload)
-    connection.request(method, path, json_payload, headers,timeout=5)
+    # print(payload)
+    connection.request(method, path, json_payload, headers)
 
     response = connection.getresponse()
     print(f'Status: {response.status}')
-    print('Response:')
+    # print('Response:')
     # print(response.read().decode('utf-8'))
     response_data = response.read().decode('utf-8')
-    print(response_data)
+    # print(response_data)
     json_response = json.loads(response_data)
-    print()
+    # print("hiiiiii")
     connection.close()
-    return json_response
+    print(json_response)
+    return json_response, response.status
     # return ""
 
 
@@ -309,7 +310,7 @@ def client_request_sender(shard_id, path, payload, method):
     with shard_obj.mutex:
         serv_id, index = shard_obj.client_hash(rid)
     server_name = "server" + str(serv_id)
-    response = send_request(server_name, 5000, path, payload, method)
+    response, _ = send_request(server_name, 5000, path, payload, method)
     with shard_obj.mutex:
         shard_obj.cont_hash[index][1] = None
     return response
@@ -332,7 +333,7 @@ def configure_server(server_id, shard_list):
     }
     print(global_schema)
     print(Payload_Json)
-    resp=send_request('server'+str(server_id), 5000, '/config',Payload_Json,'POST')
+    resp, _=send_request('server'+str(server_id), 5000, '/config',Payload_Json,'POST')
     return resp
 
 
@@ -358,7 +359,7 @@ def configure_and_setup(server_id, shard_list):
         payload = {
             "shards": payload_shard_list
         }
-        response = send_request(server_name, 5000, '/copy', payload, 'GET')
+        response, _ = send_request(server_name, 5000, '/copy', payload, 'GET')
         print(response)
         with shard_obj.mutex:
             shard_obj.cont_hash[out[1]][1]=None
@@ -369,7 +370,7 @@ def configure_and_setup(server_id, shard_list):
             "data": response['sh'+str(shard)]
         }
         server_name = "server" + str(server_id)   
-        response = send_request(server_name, 5000, '/write', payload, 'POST')
+        response, _ = send_request(server_name, 5000, '/write', payload, 'POST')
         shard_id_object_mapping[shard].serv_dict[server_id][1] = int(response['current_idx']) 
     return        
     
@@ -450,7 +451,7 @@ def server_copy(shard_list, server_id):
         "shards": shard_list
     }
     server_name = "server" + str(server_id)   
-    response = send_request(server_name, 5000, '/copy', payload, 'GET')
+    response, _ = send_request(server_name, 5000, '/copy', payload, 'GET')
     return response
 
 def server_read(shard, Stud_id_low, Stud_id_high, server_id):
@@ -460,7 +461,7 @@ def server_read(shard, Stud_id_low, Stud_id_high, server_id):
         "Stud_id": Stud_id_range
     }
     server_name = "server" + str(server_id)   
-    response = send_request(server_name, 5000, '/read', payload, 'POST')
+    response, _ = send_request(server_name, 5000, '/read', payload, 'POST')
     # if(response['status'] != "Success"):
     #     return None
     return response
@@ -474,7 +475,7 @@ def server_write(shard, curr_idx, data, server_id):
     server_name = "server" + str(server_id) 
     print("Payload")
     print(payload)  
-    response = send_request(server_name, 5000, '/write', payload, 'POST')
+    response, _ = send_request(server_name, 5000, '/write', payload, 'POST')
     return response
 
 def server_update(shard, Stud_id, sname, smarks, server_id):
@@ -486,7 +487,7 @@ def server_update(shard, Stud_id, sname, smarks, server_id):
         "data": data
     }
     server_name = "server" + str(server_id)   
-    response = send_request(server_name, 5000, '/update', payload, 'PUT')
+    response, _ = send_request(server_name, 5000, '/update', payload, 'PUT')
     return response
 
 def server_delete(shard, Stud_id, server_id):
@@ -495,8 +496,8 @@ def server_delete(shard, Stud_id, server_id):
         "Stud_id": Stud_id
     }
     server_name = "server" + str(server_id)   
-    response = send_request(server_name, 5000, '/delete', payload, 'DELETE')
-    return response    
+    response, status_code = send_request(server_name, 5000, '/del', payload, 'DELETE')
+    return response, status_code 
 
 def server_updateid(server_id, shard_id, update_idx):
     shard = "sh" + str(shard_id)
@@ -505,7 +506,7 @@ def server_updateid(server_id, shard_id, update_idx):
         "update_idx": update_idx
     }
     server_name = "server" + str(server_id)   
-    response = send_request(server_name, 5000, '/updateid', payload, 'POST')
+    response, _ = send_request(server_name, 5000, '/updateid', payload, 'POST')
     return response
 
 
@@ -808,11 +809,21 @@ class SimpleHandlerWithMutex(SimpleHTTPRequestHandler):
             payload={}
             payload['N']=len(servers_obj.server_to_docker_container_map)
             payload['schema']=global_schema
-            payload['shards']=metadata_obj.get_all_shards()
+            shard_info = metadata_obj.get_all_shards()
+            out_list = []
+            for i_shard_info in shard_info:
+                temp_dict = {}
+                temp_dict['Stud_id_low'] = i_shard_info[0]
+                temp_dict['Shard_id'] = "sh" + str(i_shard_info[1])
+                temp_dict['Shard_size'] = i_shard_info[2]
+                out_list.append(temp_dict)
+            payload['shards']=out_list
+            # payload['shards']=metadata_obj.get_all_shards()
             payload['servers']={}
-            for server_id, shard_list in servers_obj.server_to_shard_map.items():
+            for server_id in servers_obj.server_to_docker_container_map.keys():
+                shard_list=metadata_obj.get_shards(server_id)
                 for i in range(len(shard_list)):
-                    shard_list[i]='sh'+str(shard_list[i])
+                    shard_list[i]='sh'+str(shard_list[i][0])
                 payload['servers']['Server'+str(server_id)]=shard_list
             
             self.send_response(200)
@@ -917,7 +928,7 @@ class SimpleHandlerWithMutex(SimpleHTTPRequestHandler):
                     print(" Shard_id: ", shard_id, " Server_id: ", server_id, " Stud_id: ", sid, " Stud_name: ", sname, " Stud_marks: ", smarks)
 
                     response = server_update('sh'+str(shard_id), sid, sname, smarks, server_id)
-                metadata_obj.update_valid_idx(shard_id, -1)
+                metadata_obj.update_update_idx(shard_id, -1)
                     
             self.send_response(200)
             self.send_header('Content-type', 'application/json')
@@ -1021,8 +1032,18 @@ class SimpleHandlerWithMutex(SimpleHTTPRequestHandler):
             with shard_obj.update_mutex:
                 metadata_obj.update_update_idx(shard_id, Stud_id)
                 for server_id in shard_obj.serv_dict.keys():
-                    response = server_delete('sh'+str(shard_id), Stud_id, server_id)
-                metadata_obj.update_valid_idx(shard_id, -1)
+                    response, status_code = server_delete('sh'+str(shard_id), Stud_id, server_id)
+                metadata_obj.update_update_idx(shard_id, -1)
+            # check if error code is code is not 200
+                
+            if status_code != 200:
+                self.send_response(400)
+                self.send_header('Content-type', 'application/json')
+                self.end_headers()
+                server_response = {"message": "<Error> Entry not found", "status": "failure"}
+                response_str = json.dumps(server_response)
+                self.wfile.write(response_str.encode('utf-8'))
+                return
             self.send_response(200)
             self.send_header('Content-type', 'application/json')
             self.end_headers()

@@ -157,8 +157,22 @@ def send_delete_request_del(index=0,host='load_balancer', port=5000, path='/del'
     print()
     connection.close()
 
+
+def send_get_request_status(host='load_balancer', port=5000, path='/status'):
+    print("/status")
+    connection = http.client.HTTPConnection(host, port)
+    connection.request('GET', path)
+
+    response = connection.getresponse()
+    print(f'Status: {response.status}')
+    print('Response:')
+    print(response.read().decode('utf-8'))
+    print()
+    connection.close()
+
 if __name__ == '__main__':
     send_post_request_config()
+    send_get_request_status()
     # send_get_request_heartbeat()
     # send_get_request_copy()
     send_post_request_write(4)
@@ -170,12 +184,12 @@ if __name__ == '__main__':
     send_post_request_write(100)
 
     send_post_request_read()
-    send_put_request_update(0)
+    send_put_request_update(4)
     send_post_request_read()
 
     # send_get_request_copy()
     send_post_request_read()
-    send_delete_request_del(0)
+    send_delete_request_del(2)
     send_post_request_read()
     # send_get_request_copy()
 

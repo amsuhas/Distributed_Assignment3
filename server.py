@@ -344,9 +344,16 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                 self.wfile.write(json.dumps({"error": f"Entry with Stud_id:{sid} does not exist in the given shard"}).encode('utf-8'))
                 return
             
+            if check <= 0:
+                self.send_response(400)
+                self.end_headers()
+                self.wfile.write(json.dumps({"error": f"Entry with Stud_id:{sid} does not exist in the given shard"}).encode('utf-8'))
+                return
+            
             delete_query = f"DELETE FROM {shard} WHERE Stud_id = {sid};"
             cursor.execute(delete_query)
-            
+            connection.commit()
+
             self.send_response(200)
             self.send_header('Content-type', 'application/json')
             self.end_headers()
