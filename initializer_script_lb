@@ -7,4 +7,5 @@ python3 load_balancer_rehashed.py
 
 
 
-mysql -e "Use Metadata; Drop table MapT; Drop table ShardT;" 
+# mysql -e "Use Metadata; Drop table MapT; Drop table ShardT;" 
+# mysql -e "Use Student_info; Drop table sh1; Drop table sh2;" 

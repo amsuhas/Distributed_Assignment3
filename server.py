@@ -3,6 +3,7 @@ import json
 import os
 from http.server import BaseHTTPRequestHandler, HTTPServer
 import mysql.connector
+import copy
 
 server_id = os.environ.get('ID')
 
@@ -65,13 +66,17 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                 res = ""
 
                 out_list = []
-                res = ""
+                res = {}
                 for row in rows:
-                    res = '{' + '"' + 'Stud_id' + '"' + ':' + str(row[0]) + ',' + '"' + 'Stud_name' + '"' + ':' + '"' + row[1] + '"' + ',' + '"' + 'Stud_marks' + '"' + ':'  + row[2]  + '}'
+                    res["Stud_id"] = str(row[0])
+                    res["Stud_name"] = row[1]
+                    res["Stud_marks"] = row[2]
+                    # res = '{' + '"' + 'Stud_id' + '"' + ':' + str(row[0]) + ',' + '"' + 'Stud_name' + '"' + ':' + '"' + row[1] + '"' + ',' + '"' + 'Stud_marks' + '"' + ':'  + row[2]  + '}'
                     # print(res)
-                    out_list.append(res)
-                if len(out_list) > 0:
-                    out_list[-1] = out_list[-1][:-1]
+                    out_list.append(copy.deepcopy(res))
+                    res = {}
+                # if len(out_list) > 0:
+                #     out_list[-1] = out_list[-1][:-1]
                 response_data[shard] = out_list
                 # print(json.dumps(response_data).encode('utf-8'))
                 # Append data to response dictionary
@@ -176,11 +181,20 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
 
             # Append data to response dictionary
             out_list = []
-            res = ""
+            res = {}
             for row in rows:
-                res = '{' + '\"' + 'Stud_id' + '\"' + ':' + str(row[0]) + ',' + '\"' + 'Stud_name' + '\"' + ':' + '\"' + row[1] + '\"' + ',' + '\"' + 'Stud_marks' + '\"' + ':'  + row[2]  + '}'
+                res["Stud_id"] = str(row[0])
+                res["Stud_name"] = row[1]
+                res["Stud_marks"] = row[2]
+                # res = '{' + '"' + 'Stud_id' + '"' + ':' + str(row[0]) + ',' + '"' + 'Stud_name' + '"' + ':' + '"' + row[1] + '"' + ',' + '"' + 'Stud_marks' + '"' + ':'  + row[2]  + '}'
                 # print(res)
-                out_list.append(res)
+                out_list.append(copy.deepcopy(res))
+                res = {}
+            # res = ""
+            # for row in rows:
+            #     res = '{' + '\"' + 'Stud_id' + '\"' + ':' + str(row[0]) + ',' + '\"' + 'Stud_name' + '\"' + ':' + '\"' + row[1] + '\"' + ',' + '\"' + 'Stud_marks' + '\"' + ':'  + row[2]  + '}'
+            #     # print(res)
+            #     out_list.append(res)
             response_data["data"] = out_list
             # print(json.dumps(response_data).encode('utf-8'))
 

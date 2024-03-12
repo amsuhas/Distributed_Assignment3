@@ -170,6 +170,52 @@ def send_get_request_status(host='load_balancer', port=5000, path='/status'):
     print()
     connection.close()
 
+def send_del_request_rm(host='load_balancer', port=5000, path='/rm'):
+    print("/rm")
+    payload = {
+        "n":1,
+        "servers": ["Server0"]
+    }
+    headers = {'Content-type': 'application/json'}
+    json_payload = json.dumps(payload)
+    
+    connection = http.client.HTTPConnection(host, port,timeout=150)
+    connection.request('DELETE', path, json_payload, headers)
+
+    response = connection.getresponse()
+    print(f'Status: {response.status}')
+    print('Response:')
+    response_data = response.read().decode('utf-8')
+    json_response = json.loads(response_data)
+    print(json.dumps(json_response, indent=4))
+    print()
+    connection.close()
+
+def send_post_request_add(host='load_balancer', port=5000, path='/add'):
+        print("/add")
+        payload = {
+            "n":2,
+            "new_shards": [{"Stud_id_low":12288, "Shard_id": "sh4", "Shard_size":4096}],
+            "servers": {
+                "Server5":["sh1","sh2","sh4"],
+                "Server6":["sh2","sh3","sh4"],
+                }
+        }
+        headers = {'Content-type': 'application/json'}
+        json_payload = json.dumps(payload)
+
+        connection = http.client.HTTPConnection(host, port)
+        connection.request('POST', path, json_payload, headers)
+
+        response = connection.getresponse()
+        print(f'Status: {response.status}')
+        print('Response:')
+        response_data = response.read().decode('utf-8')
+        json_response = json.loads(response_data)
+        print(json.dumps(json_response, indent=4))
+        print()
+        connection.close()
+
 if __name__ == '__main__':
     send_post_request_config()
     send_get_request_status()
@@ -186,6 +232,10 @@ if __name__ == '__main__':
     send_post_request_read()
     send_put_request_update(4)
     send_post_request_read()
+
+    send_post_request_add()
+    # send_del_request_rm()
+
 
     # send_get_request_copy()
     send_post_request_read()

@@ -145,8 +145,9 @@ class Shards:
             prime_multiplier = 37
             magic_number = 0x5F3759DF
             constant_addition = 11
+            random_number=random.randint(0,100000)
 
-            nindex = ((self.counter*self.counter + j*j + 2 * j + 25) * prime_multiplier) ^ magic_number
+            nindex = ((random_number*random_number + j*j + 2 * j + 25) * prime_multiplier) ^ magic_number
             nindex = (nindex + constant_addition) % self.buf_size
             nindex = (nindex ^ (nindex & (nindex ^ (nindex - 1)))) % self.buf_size  # Bitwise AND operation
             nindex+=self.buf_size
@@ -162,7 +163,9 @@ class Shards:
                     li.append(nindex)
                     break
                 jp+=1
-        # print(li)
+        print("At get indexes")
+        print(host_name)
+        print(li)
         return li
 
     def client_hash(self,r_id):
@@ -186,7 +189,7 @@ class Shards:
             jp+=1
         nindex += 1
         nindex %= self.buf_size
-        # print(self.serv_id_dict)
+        print(self.serv_id_dict)
         if(jp!=512 and len(self.serv_id_dict) != 0):
             lower_bound_key = self.serv_id_dict.bisect_left(nindex)
             if lower_bound_key == len(self.serv_id_dict):
@@ -198,13 +201,18 @@ class Shards:
         
 
     def rm_server(self,host_name):
+        print("Removing server" + str(host_name))
+        # print("from ")
         indexes=self.serv_dict[host_name][0]
-        for ind in indexes:
-            self.cont_hash[ind][0]=None
-            del self.serv_id_dict[ind]
-        self.num_serv-=1
-        # container = self.serv_dict[host_name][1]
-        del self.serv_dict[host_name]
+        print(indexes)
+        with self.mutex:
+            for ind in indexes:
+                self.cont_hash[ind][0]=None
+                del self.serv_id_dict[ind]
+            self.num_serv-=1
+            # container = self.serv_dict[host_name][1]
+            del self.serv_dict[host_name]
+        # print(self.serv_dict[0])
         # time.sleep(5)
         # try:
         #     container.stop()
@@ -222,6 +230,8 @@ class Shards:
         #     print("ERROR!! Buffer size exceeded")
         #     return 0
         serv_listid = self.get_hash(serv_id)
+        # print(serv_id)
+        # print(serv_listid)
         self.serv_dict[serv_id] = [serv_listid,0]
         return
 
@@ -242,9 +252,10 @@ class Servers:
         global client
         print("Adding server" + str(server_id))
         server_name="server"+str(server_id)
-        # print(server_name)
-        for shard in shard_list:
-            shard_id_object_mapping[shard].add_server(server_id)
+        print(server_name)
+        print(shard_list)
+        # for shard in shard_list:
+        #     shard_id_object_mapping[shard].add_server(server_id)
         metadata_obj.add_server(server_id, shard_list)
         environment_vars = {'ID': server_id}
         container = client.containers.run("server_image", detach=True, hostname = server_name, name = server_name, network ="my_network", environment=environment_vars)
@@ -255,17 +266,22 @@ class Servers:
     
     def remove_server(self, server_id):
         global metadata_obj
+
         shard_list = metadata_obj.get_shards(server_id)
+        for i in range(len(shard_list)):
+            shard_list[i]=int(shard_list[i][0])
+        print(shard_list)
         for shard in shard_list:
             shard_id_object_mapping[shard].rm_server(server_id)
         metadata_obj.remove_server(server_id)
-        time.sleep(5)
+        # time.sleep(1)
         try:
             container = self.server_to_docker_container_map[server_id]
             container.stop()
             container.remove()
         except:
             print("No such container found!!")
+        print("Server" + str(server_id) + " removed")
         self.server_to_docker_container_map.pop(server_id)
         return shard_list
 
@@ -309,6 +325,8 @@ def client_request_sender(shard_id, path, payload, method):
     shard_obj = shard_id_object_mapping[shard_id]
     with shard_obj.mutex:
         serv_id, index = shard_obj.client_hash(rid)
+    print(serv_id)
+    print("This server is coming")
     server_name = "server" + str(serv_id)
     response, _ = send_request(server_name, 5000, path, payload, method)
     with shard_obj.mutex:
@@ -349,8 +367,10 @@ def configure_and_setup(server_id, shard_list):
         shard_obj = shard_id_object_mapping[shard]
         with shard_obj.mutex:
             out = shard_obj.client_hash(rid)
+        print(f"hii {out}")
         if out == None:
-            return 
+            shard_id_object_mapping[shard].add_server(server_id)
+            return
         serv_id = out[0]
         server_name = "server" + str(serv_id)
         shard_name = "sh" + str(shard)
@@ -514,6 +534,13 @@ def server_updateid(server_id, shard_id, update_idx):
 
 metadata_obj=Metadata()
 servers_obj=Servers()
+
+
+def generate_random_id():
+    rand_int = random.randint(500000, 1000000)
+    while rand_int in servers_obj.server_to_docker_container_map.keys():
+        rand_int = random.randint(500000, 1000000)
+    return rand_int
 
 
 # Extend SimpleHTTPRequestHandler to use shared data
@@ -706,18 +733,12 @@ class SimpleHandlerWithMutex(SimpleHTTPRequestHandler):
             serv_id_list = []
             for server_name, shard_list in server_list.items():
                 if(server_name[0:6]!="Server"):
-                    rand_int = random.randint(500000, 1000000)
-                    while rand_int in servers_obj.server_to_docker_container_map:
-                        rand_int = random.randint(500000, 1000000)
-                    server_id = rand_int
-                    # server_name = "Server" + str(rand_int)
-                try:
-                    server_id = int(server_name[6:])
-                except:
-                    rand_int = random.randint(500000, 1000000)
-                    while rand_int in servers_obj.server_to_docker_container_map:
-                        rand_int = random.randint(500000, 1000000)
-                    server_id = rand_int
+                    server_id = generate_random_id()
+                else:
+                    try:
+                        server_id = int(server_name[6:])
+                    except:
+                        server_id = generate_random_id()
                 
                 for i in range(len(shard_list)):
                     shard_list[i] = int(shard_list[i][2:])
@@ -953,7 +974,8 @@ class SimpleHandlerWithMutex(SimpleHTTPRequestHandler):
             content = json.loads(content)
             num_servs = int(content["n"])
             server_list = content["servers"]
-            if(num_servs<len(server_list)):
+            rm_servs = []
+            if( num_servs < len(server_list) ):
                 self.send_response(400)
                 self.send_header('Content-type', 'application/json')
                 self.end_headers()
@@ -966,14 +988,28 @@ class SimpleHandlerWithMutex(SimpleHTTPRequestHandler):
                 server_id = int(server[6:])
                 with servers_obj.mutex:
                     servers_obj.remove_server(server_id)
+                rm_servs.append(server)
                 cur += 1
             while cur < num_servs:
-                len = len(servers_obj.server_to_docker_container_map)
-                random_idx = random.randint(0, len-1)
+                leng = len(servers_obj.server_to_docker_container_map)
+                random_idx = random.randint(0, leng-1)
                 server_id = list(servers_obj.server_to_docker_container_map.keys())[random_idx]
                 with servers_obj.mutex:
                     servers_obj.remove_server(server_id)
+                rm_servs.append("Server:"+str(server_id))
                 cur += 1
+
+            self.send_response(200)
+            self.send_header('Content-type', 'application/json')
+            self.end_headers()
+            message={}
+            message['N']=len(rm_servs)
+            message['servers']=rm_servs
+            server_response = {"message":message, "status": "successful"}
+            response_str = json.dumps(server_response)
+            self.wfile.write(response_str.encode('utf-8'))
+            return
+            
 
         # if(self.path == '/rm'):
         #     content_length = int(self.headers['Content-Length'])
