@@ -10,11 +10,10 @@ make server_image
 make client_image
 ```
 
-# Spawn the load balancer container & mention number of initial container
+# Spawn the load balancer container
 ```bash
-make run_lb N=<number of initial containers>
+make run_lb
 ```
-(eg: make run_lb N=3, for 3 initial servers)
 
 # Spawn the client container (which will open in the interactive mode)
 ```bash
@@ -28,7 +27,12 @@ make run_server
 
 # To see the logs of load balancer
 ```bash
-make read_logs
+make read_lb_logs
+```
+
+# To see the logs of a particular server
+```bash
+make read_server_logs sname=<server name>
 ```
 
 # To run the analyse code
@@ -139,3 +143,9 @@ Below is the case where one of the servers fail and load balancer spawns a new s
 The above diagrams show that the modified hash function works better in allocating the servers to the clients as compared to the original one. This can be seen from the equitable distribution between the 3 servers in the bar graph. The lower standard deviations proves that the modified hash function works better to distribute the requests.
 
 These design choices and assumptions are made to ensure the efficiency, reliability, and responsiveness of the server management system. Contributors and users are encouraged to provide feedback and suggestions for further improvements.
+
+
+
+
+# mysql -e "Use Metadata; Drop table MapT; Drop table ShardT;" 
+# mysql -e "Use Student_info; Drop table sh1; Drop table sh2;" 

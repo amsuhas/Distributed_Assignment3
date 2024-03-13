@@ -20,15 +20,19 @@ run_client:
 run_server:
 	docker run -dit --name server --hostname server --network my_network server_image
 
-read_logs:
-	docker cp load_balancer:/usr/src/app/logs lb_logs
+read_lb_logs:
+	docker cp load_balancer:/usr/src/app/lb_logs ./lb_logs
+	xdg-open lb_logs
 
+read_server_logs:
+	docker cp $(sname):/usr/src/app/server_logs ./$(sname)_logs
+	xdg-open $(sname)_logs
 
 dummy_image:
 	docker build -f Dockerfile_dummy -t dummy_image .
 
 run_dummy:
-	docker run -dit --name dummy --hostname client --network my_network dummy_image
+	docker run -dit --name client --hostname client --network my_network dummy_image
 	
 run_dummy_lb:
 	docker run --privileged -dit --name load_balancer --hostname load_balancer -v /var/run/docker.sock:/var/run/docker.sock --network my_network dummy_image 
