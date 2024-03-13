@@ -1,9 +1,6 @@
 create_network:
 	docker network create my_network
 
-dummy_image:
-	docker build -f Dockerfile_dummy -t dummy_image .
-
 server_image:
 	docker build -f Dockerfile_server -t server_image .
 
@@ -25,6 +22,10 @@ run_server:
 
 read_logs:
 	docker cp load_balancer:/usr/src/app/logs lb_logs
+
+
+dummy_image:
+	docker build -f Dockerfile_dummy -t dummy_image .
 
 run_dummy:
 	docker run -dit --name dummy --hostname client --network my_network dummy_image

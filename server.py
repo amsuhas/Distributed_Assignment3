@@ -30,12 +30,13 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
         #     self.wfile.write(response_str.encode('utf-8'))
         #     return
         if(self.path == '/heartbeat'):
+            print("Received heartbeat request\n")
             self.send_response(200)
             self.send_header('Content-type', 'application/json')
             self.end_headers()
             return
         elif self.path == '/copy':
-            print("/copy")
+            print("Received copy request\n")
             content_length = int(self.headers['Content-Length'])
             post_data = self.rfile.read(content_length)
             payload = json.loads(post_data)
@@ -103,6 +104,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
     
     def do_POST(self):
         if self.path == '/config':
+            print("Received config request\n")
             content_length = int(self.headers['Content-Length'])
             post_data = self.rfile.read(content_length)
             payload = json.loads(post_data)
@@ -148,6 +150,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
             return
         
         elif self.path == '/read':
+            print("Received read request\n")
             content_length = int(self.headers['Content-Length'])
             post_data = self.rfile.read(content_length)
             payload = json.loads(post_data)
@@ -213,12 +216,11 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
             return
         
         elif self.path == '/write':
-            print("HI")
+            print("Received write request\n")
             content_length = int(self.headers['Content-Length'])
             post_data = self.rfile.read(content_length)
             payload = json.loads(post_data)
             
-            print("YO")
 
             shard = payload.get('shard')
             curr_idx = int(payload.get('curr_idx'))
@@ -273,7 +275,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
             return
         
         elif self.path == '/updateid':
-            print("jelly")
+            print("Received update index request\n")
             content_length = int(self.headers['Content-Length'])
             post_data = self.rfile.read(content_length)
             payload = json.loads(post_data)
@@ -293,6 +295,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
         
     def do_PUT(self):
         if self.path == '/update':
+            print("Received update request\n")
             content_length = int(self.headers['Content-Length'])
             put_data = self.rfile.read(content_length)
             payload = json.loads(put_data)
@@ -335,6 +338,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
         
     def do_DELETE(self):
         if self.path == '/del':
+            print("Received delete request\n")
             content_length = int(self.headers['Content-Length'])
             delete_data = self.rfile.read(content_length)
             payload = json.loads(delete_data)
