@@ -51,11 +51,13 @@ class Metadata:
         connection.commit()
 
     def add_shard(self, shard_id, shard_size,shard_id_low):
+        print(f"Inside add_shard function. adding {shard_id} info to ShardT")
         insert_query = f"INSERT INTO ShardT (Stud_id_low, Shard_id, Shard_size, Valid_idx, Update_idx) VALUES ({shard_id_low}, {shard_id}, {shard_size}, 0, -1);"
         cursor.execute(insert_query)
         connection.commit()    
     
     def add_server(self, server_id, shard_list):
+        print(f"adding server:{server_id} having shard_list: {shard_list} in MapT")
         for shard in shard_list:
             insert_query = f"INSERT INTO MapT (Shard_id, Server_id) VALUES ({shard}, {server_id});"
             cursor.execute(insert_query)
@@ -202,6 +204,7 @@ class Shards:
 
     def rm_server(self,host_name):
         print("Removing server" + str(host_name))
+        print(self.serv_dict)
         # print("from ")
         indexes=self.serv_dict[host_name][0]
         print(indexes)
@@ -233,6 +236,7 @@ class Shards:
         # print(serv_id)
         # print(serv_listid)
         self.serv_dict[serv_id] = [serv_listid,0]
+        print(self.serv_dict)
         return
 
 
@@ -248,30 +252,35 @@ class Servers:
     server_to_docker_container_map = {}        
 
     def add_server(self, server_id, shard_list):
+        print(f"Inside add_server function of servers_obj for server:{server_id} having shard list:{shard_list}")
         global metadata_obj
         global client
-        print("Adding server" + str(server_id))
+        # print("Adding server" + str(server_id))
         server_name="server"+str(server_id)
         print(server_name)
         print(shard_list)
         # for shard in shard_list:
         #     shard_id_object_mapping[shard].add_server(server_id)
+        print(f"adding server {server_id} in metadata_obj")
         metadata_obj.add_server(server_id, shard_list)
         environment_vars = {'ID': server_id}
+        print("making server container")
         container = client.containers.run("server_image", detach=True, hostname = server_name, name = server_name, network ="my_network", environment=environment_vars)
         time.sleep(5)
         self.server_to_docker_container_map[server_id] = container
+        print(f"calling configure_and_setup for {server_id}")
         configure_and_setup(server_id, shard_list)
         return
     
     def remove_server(self, server_id):
+        print(f"Inside remove_server function of servers_obj for server:{server_id}") 
         global metadata_obj
-
         shard_list = metadata_obj.get_shards(server_id)
         for i in range(len(shard_list)):
             shard_list[i]=int(shard_list[i][0])
         print(shard_list)
         for shard in shard_list:
+            print(shard)
             shard_id_object_mapping[shard].rm_server(server_id)
         metadata_obj.remove_server(server_id)
         # time.sleep(1)
@@ -338,7 +347,7 @@ def client_request_sender(shard_id, path, payload, method):
 
 
 def configure_server(server_id, shard_list):
-    print(server_id)
+    print(f"sending configure message to server:{server_id}")
 
     shards = []
     for e in shard_list:
@@ -360,6 +369,7 @@ def configure_server(server_id, shard_list):
 
 
 def configure_and_setup(server_id, shard_list):
+    print(f"calling configure_server for {server_id} having {shard_list}") 
     configure_server(server_id, shard_list)
     # rid = random.randrange(99999, 1000000, 1)
     for shard in shard_list:
@@ -367,10 +377,10 @@ def configure_and_setup(server_id, shard_list):
         shard_obj = shard_id_object_mapping[shard]
         with shard_obj.mutex:
             out = shard_obj.client_hash(rid)
-        print(f"hii {out}")
         if out == None:
+            print(f"adding server:{server_id} to object of {shard}")
             shard_id_object_mapping[shard].add_server(server_id)
-            return
+            continue
         serv_id = out[0]
         server_name = "server" + str(serv_id)
         shard_name = "sh" + str(shard)
@@ -383,6 +393,8 @@ def configure_and_setup(server_id, shard_list):
         print(response)
         with shard_obj.mutex:
             shard_obj.cont_hash[out[1]][1]=None
+        
+        print(f"adding server:{server_id} to object of {shard}")
         shard_id_object_mapping[shard].add_server(server_id)
         payload = {
             "shard": shard_name,
@@ -442,7 +454,7 @@ def send_get_request_with_timeout(host_name='localhost', port=5000, path='/'):
 def thread_heartbeat():
     global servers_obj
     print("Heartbeat thread started")
-    print(servers_obj)
+    #print(servers_obj)
     while(1):
         with servers_obj.mutex:
             host_list = []
@@ -467,6 +479,7 @@ def thread_heartbeat():
 
 
 def server_copy(shard_list, server_id):
+    print("Copying shards: " + shard_list + " to server: " + str(server_id))
     payload = {
         "shards": shard_list
     }
@@ -475,6 +488,7 @@ def server_copy(shard_list, server_id):
     return response
 
 def server_read(shard, Stud_id_low, Stud_id_high, server_id):
+    print("Reading from shard: " + shard + " in server: " + str(server_id) + " for Stud_id range: " + str(Stud_id_low) + " to " + str(Stud_id_high))
     Stud_id_range = {"low": Stud_id_low, "high": Stud_id_high}
     payload = {
         "shard": shard,
@@ -487,6 +501,7 @@ def server_read(shard, Stud_id_low, Stud_id_high, server_id):
     return response
 
 def server_write(shard, curr_idx, data, server_id):
+    print("Writing to shard: " + shard + " in server: " + str(server_id) + " at index: " + str(curr_idx))
     payload = {
         "shard": shard,
         "curr_idx": curr_idx,
@@ -499,6 +514,7 @@ def server_write(shard, curr_idx, data, server_id):
     return response
 
 def server_update(shard, Stud_id, sname, smarks, server_id):
+    print("Updating the student with Stud_id: " + str(Stud_id) + " in shard: " + shard + " in server: " + str(server_id))
     sid=Stud_id
     data = {"Stud_id": sid, "Stud_name": sname, "Stud_marks": smarks}
     payload = {
@@ -511,6 +527,7 @@ def server_update(shard, Stud_id, sname, smarks, server_id):
     return response
 
 def server_delete(shard, Stud_id, server_id):
+    print("Deleting the student with Stud_id: " + str(Stud_id) + " from shard: " + shard + " in server: " + str(server_id))
     payload = {
         "shard": shard,
         "Stud_id": Stud_id
@@ -520,6 +537,7 @@ def server_delete(shard, Stud_id, server_id):
     return response, status_code 
 
 def server_updateid(server_id, shard_id, update_idx):
+    print("Updating update_idx" + " in shard: " + shard_id + " in server: " + str(server_id) + " to " + str(update_idx))
     shard = "sh" + str(shard_id)
     payload = {
         "shard": shard,
@@ -537,6 +555,7 @@ servers_obj=Servers()
 
 
 def generate_random_id():
+    print("Generating random id")
     rand_int = random.randint(500000, 1000000)
     while rand_int in servers_obj.server_to_docker_container_map.keys():
         rand_int = random.randint(500000, 1000000)
@@ -552,6 +571,7 @@ class SimpleHandlerWithMutex(SimpleHTTPRequestHandler):
         global metadata_obj
         global global_schema
         if(self.path == '/init'):
+            print("Inside \"/init\" endpoint")
             content_length = int(self.headers['Content-Length'])
             content = self.rfile.read(content_length).decode('utf-8')
             content = json.loads(content)
@@ -618,6 +638,7 @@ class SimpleHandlerWithMutex(SimpleHTTPRequestHandler):
                 #     return
                 # try:
                 shard_id = int(shard_id[2:])
+                print(f"Creating shard object for {shard}")
                 shard_id_object_mapping[shard_id] = Shards()
                 # except:
                 #     self.send_response(400)
@@ -627,12 +648,14 @@ class SimpleHandlerWithMutex(SimpleHTTPRequestHandler):
                 #     response_str = json.dumps(server_response)
                 #     self.wfile.write(response_str.encode('utf-8'))
                 #     return
+                print(f"adding details of {shard} in metadata object")
                 metadata_obj.add_shard(shard_id, int(shard["Shard_size"]), int(shard["Stud_id_low"]))
             for server_name, shard_list in shard_server_mapping.items():
                 server_id = int(server_name[6:])
                 for i in range(len(shard_list)):
                     shard_list[i] = int(shard_list[i][2:])
                 with servers_obj.mutex:
+                    print(f"adding {server_id} to server_obj")
                     servers_obj.add_server(server_id, shard_list)
             self.send_response(200)
             self.send_header('Content-type', 'application/json')
@@ -673,8 +696,9 @@ class SimpleHandlerWithMutex(SimpleHTTPRequestHandler):
                     last_idx=0
                     print(shard_id,entries_list)
                     print(shard_obj.serv_dict.keys())
+                    cur_valid_idx = metadata_obj.get_valid_idx()
                     for server_id in shard_obj.serv_dict.keys():
-                        response = server_write('sh'+str(shard_id), shard_obj.serv_dict[server_id][1], entries_list, server_id)
+                        response = server_write('sh'+str(shard_id), cur_valid_idx, entries_list, server_id)
                         shard_obj.serv_dict[server_id][1] = int(response["current_idx"])
                         last_idx = int(response["current_idx"])
                     metadata_obj.update_valid_idx(shard_id, last_idx)
@@ -691,6 +715,7 @@ class SimpleHandlerWithMutex(SimpleHTTPRequestHandler):
 
 
         elif(self.path == '/add'):
+            print("In add endpoint")
             content_length = int(self.headers['Content-Length'])
             content = self.rfile.read(content_length).decode('utf-8')
             content = json.loads(content)
@@ -761,6 +786,7 @@ class SimpleHandlerWithMutex(SimpleHTTPRequestHandler):
             return
 
         elif(self.path == '/read'):
+            print("In read endpoint")
             content_length = int(self.headers['Content-Length'])
             content = self.rfile.read(content_length).decode('utf-8')
             content = json.loads(content)
@@ -827,6 +853,7 @@ class SimpleHandlerWithMutex(SimpleHTTPRequestHandler):
         #     shared_data.counter += 1
         #     counter_value = shared_data.counter
         if(self.path == '/status'):
+            print("In status endpoint")
             payload={}
             payload['N']=len(servers_obj.server_to_docker_container_map)
             payload['schema']=global_schema
@@ -920,6 +947,7 @@ class SimpleHandlerWithMutex(SimpleHTTPRequestHandler):
     
     
         if (self.path == '/update'):
+            print("In update endpoint")
             content_length = int(self.headers['Content-Length'])
             content = self.rfile.read(content_length).decode('utf-8')
             content = json.loads(content)
@@ -969,6 +997,7 @@ class SimpleHandlerWithMutex(SimpleHTTPRequestHandler):
         global metadata_obj
         global servers_obj
         if(self.path == '/rm'):
+            print('in rm endpoint')
             content_length = int(self.headers['Content-Length'])
             content = self.rfile.read(content_length).decode('utf-8')
             content = json.loads(content)
@@ -1051,6 +1080,7 @@ class SimpleHandlerWithMutex(SimpleHTTPRequestHandler):
         
         
         elif (self.path == '/del'):
+            print('in del endpoint')
             content_length = int(self.headers['Content-Length'])
             content = self.rfile.read(content_length).decode('utf-8')
             content = json.loads(content)

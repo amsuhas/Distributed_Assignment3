@@ -234,7 +234,7 @@ if __name__ == '__main__':
     send_post_request_read()
 
     send_post_request_add()
-    # send_del_request_rm()
+    send_del_request_rm()
 
 
     # send_get_request_copy()

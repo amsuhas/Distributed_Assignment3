@@ -27,6 +27,7 @@ read_logs:
 	docker cp load_balancer:/usr/src/app/logs lb_logs
 
 run_dummy:
-	docker run -dit --name dummy --hostname server0 --network my_network dummy_image
+	docker run -dit --name dummy --hostname client --network my_network dummy_image
 	
-
+run_dummy_lb:
+	docker run --privileged -dit --name load_balancer --hostname load_balancer -v /var/run/docker.sock:/var/run/docker.sock --network my_network dummy_image 
