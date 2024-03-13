@@ -1,0 +1,651 @@
+Creating tables
+CREATE TABLE ShardT ( Stud_id_low INT, Shard_id INT, Shard_size INT, Valid_idx INT, Update_idx INT);
+CREATE TABLE MapT ( Shard_id INT, Server_id INT);
+Starting server on port 5000...
+Heartbeat thread started
+Inside "/init" endpoint
+Creating shard object for {'Stud_id_low': 0, 'Shard_id': 'sh1', 'Shard_size': 4096}
+Creating shard object
+adding details of {'Stud_id_low': 0, 'Shard_id': 'sh1', 'Shard_size': 4096} in metadata object
+Inside add_shard function. adding 1 info to ShardT
+Creating shard object for {'Stud_id_low': 4096, 'Shard_id': 'sh2', 'Shard_size': 4096}
+Creating shard object
+adding details of {'Stud_id_low': 4096, 'Shard_id': 'sh2', 'Shard_size': 4096} in metadata object
+Inside add_shard function. adding 2 info to ShardT
+Creating shard object for {'Stud_id_low': 8192, 'Shard_id': 'sh3', 'Shard_size': 4096}
+Creating shard object
+adding details of {'Stud_id_low': 8192, 'Shard_id': 'sh3', 'Shard_size': 4096} in metadata object
+Inside add_shard function. adding 3 info to ShardT
+adding 0 to server_obj
+Inside add_server function of servers_obj for server:0 having shard list:[1, 2]
+adding server 0 in metadata_obj
+adding server:0 having shard_list: [1, 2] in MapT
+making server container
+calling configure_and_setup for 0
+calling configure_server for 0 having [1, 2]
+Configuring server:0 with shard_list:[1, 2]
+Sending POST request to server0:5000/config with payload: {"schema": {"columns": ["Stud_id", "Stud_name", "Stud_marks"], "dtypes": ["Number", "String", "String"]}, "shards": ["sh1", "sh2"]}
+Status: 200
+Response:
+{'message': '0:sh1, 0:sh2 configured', 'status': 'success'}
+Inside for loop for shard:1
+At client hash
+adding server:0 to object of 1
+Adding server 0
+At get hash
+Returning from get hash function and the list is [272, 40, 64, 108, 384, 240, 168, 112, 392]
+Added server 0 with indexes [272, 40, 64, 108, 384, 240, 168, 112, 392]
+Inside for loop for shard:2
+At client hash
+adding server:0 to object of 2
+Adding server 0
+At get hash
+Returning from get hash function and the list is [176, 376, 16, 500, 192, 408, 496, 436, 0]
+Added server 0 with indexes [176, 376, 16, 500, 192, 408, 496, 436, 0]
+adding 1 to server_obj
+Inside add_server function of servers_obj for server:1 having shard list:[2, 3]
+adding server 1 in metadata_obj
+adding server:1 having shard_list: [2, 3] in MapT
+making server container
+calling configure_and_setup for 1
+calling configure_server for 1 having [2, 3]
+Configuring server:1 with shard_list:[2, 3]
+Sending POST request to server1:5000/config with payload: {"schema": {"columns": ["Stud_id", "Stud_name", "Stud_marks"], "dtypes": ["Number", "String", "String"]}, "shards": ["sh2", "sh3"]}
+Status: 200
+Response:
+{'message': '1:sh2, 1:sh3 configured', 'status': 'success'}
+Inside for loop for shard:2
+At client hash
+Returning from client hash function and the server is 0
+Copying shard:2 to server:1
+Sending GET request to server0:5000/copy with payload: {"shards": ["sh2"]}
+Status: 200
+Response:
+{'sh2': [], 'status': 'success'}
+adding server:1 to object of 2
+Adding server 1
+At get hash
+Returning from get hash function and the list is [416, 288, 1, 76, 96, 60, 64, 368, 432]
+Added server 1 with indexes [416, 288, 1, 76, 96, 60, 64, 368, 432]
+Sending POST request to server1:5000/write with payload: {"shard": "sh2", "curr_idx": 0, "data": []}
+Status: 200
+Response:
+{'message': 'Data entries added', 'current_idx': 0, 'status': 'success'}
+Inside for loop for shard:3
+At client hash
+adding server:1 to object of 3
+Adding server 1
+At get hash
+Returning from get hash function and the list is [56, 456, 480, 492, 496, 128, 392, 164, 508]
+Added server 1 with indexes [56, 456, 480, 492, 496, 128, 392, 164, 508]
+adding 2 to server_obj
+Inside add_server function of servers_obj for server:2 having shard list:[1, 3]
+adding server 2 in metadata_obj
+adding server:2 having shard_list: [1, 3] in MapT
+making server container
+calling configure_and_setup for 2
+calling configure_server for 2 having [1, 3]
+Configuring server:2 with shard_list:[1, 3]
+Sending POST request to server2:5000/config with payload: {"schema": {"columns": ["Stud_id", "Stud_name", "Stud_marks"], "dtypes": ["Number", "String", "String"]}, "shards": ["sh1", "sh3"]}
+Status: 200
+Response:
+{'message': '2:sh1, 2:sh3 configured', 'status': 'success'}
+Inside for loop for shard:1
+At client hash
+Returning from client hash function and the server is 0
+Copying shard:1 to server:2
+Sending GET request to server0:5000/copy with payload: {"shards": ["sh1"]}
+Status: 200
+Response:
+{'sh1': [], 'status': 'success'}
+adding server:2 to object of 1
+Adding server 2
+At get hash
+Returning from get hash function and the list is [448, 488, 480, 76, 48, 60, 12, 380, 444]
+Added server 2 with indexes [448, 488, 480, 76, 48, 60, 12, 380, 444]
+Sending POST request to server2:5000/write with payload: {"shard": "sh1", "curr_idx": 0, "data": []}
+Status: 200
+Response:
+{'message': 'Data entries added', 'current_idx': 0, 'status': 'success'}
+Inside for loop for shard:3
+At client hash
+Returning from client hash function and the server is 1
+Copying shard:3 to server:2
+Sending GET request to server1:5000/copy with payload: {"shards": ["sh3"]}
+Status: 200
+Response:
+{'sh3': [], 'status': 'success'}
+adding server:2 to object of 3
+Adding server 2
+At get hash
+Returning from get hash function and the list is [268, 220, 84, 500, 352, 120, 481, 353, 448]
+Added server 2 with indexes [268, 220, 84, 500, 352, 120, 481, 353, 448]
+Sending POST request to server2:5000/write with payload: {"shard": "sh3", "curr_idx": 0, "data": []}
+Status: 200
+Response:
+{'message': 'Data entries added', 'current_idx': 0, 'status': 'success'}
+Sending heartbeat request to  server0
+Sending heartbeat request to  server1
+In status endpoint
+Getting all shards
+Getting shards for server:0
+Sending heartbeat request to  server2
+Getting shards for server:1
+Getting shards for server:2
+Getting shard_id for stud_id:4
+{1: [{'Stud_id': '4', 'Stud_name': 'GHI4', 'Stud_marks': '27'}]}
+write ke under hu
+Mutex ke under hu
+1 [{'Stud_id': '4', 'Stud_name': 'GHI4', 'Stud_marks': '27'}]
+dict_keys([0, 2])
+Getting valid_idx for shard_id:1
+Writing to shard: sh1 in server: 0 with curr_idx: 0 and data: [{'Stud_id': '4', 'Stud_name': 'GHI4', 'Stud_marks': '27'}]
+Payload
+{'shard': 'sh1', 'curr_idx': 0, 'data': [{'Stud_id': '4', 'Stud_name': 'GHI4', 'Stud_marks': '27'}]}
+Sending POST request to server0:5000/write with payload: {"shard": "sh1", "curr_idx": 0, "data": [{"Stud_id": "4", "Stud_name": "GHI4", "Stud_marks": "27"}]}
+Status: 200
+Response:
+{'message': 'Data entries added', 'current_idx': 1, 'status': 'success'}
+Writing to shard: sh1 in server: 2 with curr_idx: 0 and data: [{'Stud_id': '4', 'Stud_name': 'GHI4', 'Stud_marks': '27'}]
+Payload
+{'shard': 'sh1', 'curr_idx': 0, 'data': [{'Stud_id': '4', 'Stud_name': 'GHI4', 'Stud_marks': '27'}]}
+Sending POST request to server2:5000/write with payload: {"shard": "sh1", "curr_idx": 0, "data": [{"Stud_id": "4", "Stud_name": "GHI4", "Stud_marks": "27"}]}
+Status: 200
+Response:
+{'message': 'Data entries added', 'current_idx': 1, 'status': 'success'}
+Updating valid_idx for shard_id:1 to 1
+Getting valid_idx for shard_id:1
+Updating update_idx in shard: 1  in server: 0  to 1
+Sending POST request to server0:5000/updateid with payload: {"shard": "sh1", "update_idx": 1}
+Status: 200
+Response:
+{'message': 'Update index updated', 'status': 'success'}
+Getting valid_idx for shard_id:1
+Updating update_idx in shard: 1  in server: 2  to 1
+Sending POST request to server2:5000/updateid with payload: {"shard": "sh1", "update_idx": 1}
+Status: 200
+Response:
+{'message': 'Update index updated', 'status': 'success'}
+Getting shard_id for stud_id:2
+{1: [{'Stud_id': '2', 'Stud_name': 'GHI2', 'Stud_marks': '27'}]}
+write ke under hu
+Mutex ke under hu
+1 [{'Stud_id': '2', 'Stud_name': 'GHI2', 'Stud_marks': '27'}]
+dict_keys([0, 2])
+Getting valid_idx for shard_id:1
+Writing to shard: sh1 in server: 0 with curr_idx: 1 and data: [{'Stud_id': '2', 'Stud_name': 'GHI2', 'Stud_marks': '27'}]
+Payload
+{'shard': 'sh1', 'curr_idx': 1, 'data': [{'Stud_id': '2', 'Stud_name': 'GHI2', 'Stud_marks': '27'}]}
+Sending POST request to server0:5000/write with payload: {"shard": "sh1", "curr_idx": 1, "data": [{"Stud_id": "2", "Stud_name": "GHI2", "Stud_marks": "27"}]}
+Status: 200
+Response:
+{'message': 'Data entries added', 'current_idx': 2, 'status': 'success'}
+Writing to shard: sh1 in server: 2 with curr_idx: 1 and data: [{'Stud_id': '2', 'Stud_name': 'GHI2', 'Stud_marks': '27'}]
+Payload
+{'shard': 'sh1', 'curr_idx': 1, 'data': [{'Stud_id': '2', 'Stud_name': 'GHI2', 'Stud_marks': '27'}]}
+Sending POST request to server2:5000/write with payload: {"shard": "sh1", "curr_idx": 1, "data": [{"Stud_id": "2", "Stud_name": "GHI2", "Stud_marks": "27"}]}
+Status: 200
+Response:
+{'message': 'Data entries added', 'current_idx': 2, 'status': 'success'}
+Updating valid_idx for shard_id:1 to 2
+Getting valid_idx for shard_id:1
+Updating update_idx in shard: 1  in server: 0  to 2
+Sending POST request to server0:5000/updateid with payload: {"shard": "sh1", "update_idx": 2}
+Status: 200
+Response:
+{'message': 'Update index updated', 'status': 'success'}
+Getting valid_idx for shard_id:1
+Updating update_idx in shard: 1  in server: 2  to 2
+Sending POST request to server2:5000/updateid with payload: {"shard": "sh1", "update_idx": 2}
+Status: 200
+Response:
+{'message': 'Update index updated', 'status': 'success'}
+Getting shard_id for stud_id:10
+{1: [{'Stud_id': '10', 'Stud_name': 'GHI10', 'Stud_marks': '27'}]}
+write ke under hu
+Mutex ke under hu
+1 [{'Stud_id': '10', 'Stud_name': 'GHI10', 'Stud_marks': '27'}]
+dict_keys([0, 2])
+Getting valid_idx for shard_id:1
+Writing to shard: sh1 in server: 0 with curr_idx: 2 and data: [{'Stud_id': '10', 'Stud_name': 'GHI10', 'Stud_marks': '27'}]
+Payload
+{'shard': 'sh1', 'curr_idx': 2, 'data': [{'Stud_id': '10', 'Stud_name': 'GHI10', 'Stud_marks': '27'}]}
+Sending POST request to server0:5000/write with payload: {"shard": "sh1", "curr_idx": 2, "data": [{"Stud_id": "10", "Stud_name": "GHI10", "Stud_marks": "27"}]}
+Status: 200
+Response:
+{'message': 'Data entries added', 'current_idx': 3, 'status': 'success'}
+Writing to shard: sh1 in server: 2 with curr_idx: 2 and data: [{'Stud_id': '10', 'Stud_name': 'GHI10', 'Stud_marks': '27'}]
+Payload
+{'shard': 'sh1', 'curr_idx': 2, 'data': [{'Stud_id': '10', 'Stud_name': 'GHI10', 'Stud_marks': '27'}]}
+Sending POST request to server2:5000/write with payload: {"shard": "sh1", "curr_idx": 2, "data": [{"Stud_id": "10", "Stud_name": "GHI10", "Stud_marks": "27"}]}
+Status: 200
+Response:
+{'message': 'Data entries added', 'current_idx': 3, 'status': 'success'}
+Updating valid_idx for shard_id:1 to 3
+Getting valid_idx for shard_id:1
+Updating update_idx in shard: 1  in server: 0  to 3
+Sending POST request to server0:5000/updateid with payload: {"shard": "sh1", "update_idx": 3}
+Status: 200
+Response:
+{'message': 'Update index updated', 'status': 'success'}
+Getting valid_idx for shard_id:1
+Updating update_idx in shard: 1  in server: 2  to 3
+Sending POST request to server2:5000/updateid with payload: {"shard": "sh1", "update_idx": 3}
+Status: 200
+Response:
+{'message': 'Update index updated', 'status': 'success'}
+Getting shard_id for stud_id:3
+{1: [{'Stud_id': '3', 'Stud_name': 'GHI3', 'Stud_marks': '27'}]}
+write ke under hu
+Mutex ke under hu
+1 [{'Stud_id': '3', 'Stud_name': 'GHI3', 'Stud_marks': '27'}]
+dict_keys([0, 2])
+Getting valid_idx for shard_id:1
+Writing to shard: sh1 in server: 0 with curr_idx: 3 and data: [{'Stud_id': '3', 'Stud_name': 'GHI3', 'Stud_marks': '27'}]
+Payload
+{'shard': 'sh1', 'curr_idx': 3, 'data': [{'Stud_id': '3', 'Stud_name': 'GHI3', 'Stud_marks': '27'}]}
+Sending POST request to server0:5000/write with payload: {"shard": "sh1", "curr_idx": 3, "data": [{"Stud_id": "3", "Stud_name": "GHI3", "Stud_marks": "27"}]}
+Status: 200
+Response:
+{'message': 'Data entries added', 'current_idx': 4, 'status': 'success'}
+Writing to shard: sh1 in server: 2 with curr_idx: 3 and data: [{'Stud_id': '3', 'Stud_name': 'GHI3', 'Stud_marks': '27'}]
+Payload
+{'shard': 'sh1', 'curr_idx': 3, 'data': [{'Stud_id': '3', 'Stud_name': 'GHI3', 'Stud_marks': '27'}]}
+Sending POST request to server2:5000/write with payload: {"shard": "sh1", "curr_idx": 3, "data": [{"Stud_id": "3", "Stud_name": "GHI3", "Stud_marks": "27"}]}
+Status: 200
+Response:
+{'message': 'Data entries added', 'current_idx': 4, 'status': 'success'}
+Updating valid_idx for shard_id:1 to 4
+Getting valid_idx for shard_id:1
+Updating update_idx in shard: 1  in server: 0  to 4
+Sending POST request to server0:5000/updateid with payload: {"shard": "sh1", "update_idx": 4}
+Status: 200
+Response:
+{'message': 'Update index updated', 'status': 'success'}
+Getting valid_idx for shard_id:1
+Updating update_idx in shard: 1  in server: 2  to 4
+Sending POST request to server2:5000/updateid with payload: {"shard": "sh1", "update_idx": 4}
+Status: 200
+Response:
+{'message': 'Update index updated', 'status': 'success'}
+Getting shard_id for stud_id:19
+{1: [{'Stud_id': '19', 'Stud_name': 'GHI19', 'Stud_marks': '27'}]}
+write ke under hu
+Mutex ke under hu
+1 [{'Stud_id': '19', 'Stud_name': 'GHI19', 'Stud_marks': '27'}]
+dict_keys([0, 2])
+Getting valid_idx for shard_id:1
+Writing to shard: sh1 in server: 0 with curr_idx: 4 and data: [{'Stud_id': '19', 'Stud_name': 'GHI19', 'Stud_marks': '27'}]
+Payload
+{'shard': 'sh1', 'curr_idx': 4, 'data': [{'Stud_id': '19', 'Stud_name': 'GHI19', 'Stud_marks': '27'}]}
+Sending POST request to server0:5000/write with payload: {"shard": "sh1", "curr_idx": 4, "data": [{"Stud_id": "19", "Stud_name": "GHI19", "Stud_marks": "27"}]}
+Status: 200
+Response:
+{'message': 'Data entries added', 'current_idx': 5, 'status': 'success'}
+Writing to shard: sh1 in server: 2 with curr_idx: 4 and data: [{'Stud_id': '19', 'Stud_name': 'GHI19', 'Stud_marks': '27'}]
+Payload
+{'shard': 'sh1', 'curr_idx': 4, 'data': [{'Stud_id': '19', 'Stud_name': 'GHI19', 'Stud_marks': '27'}]}
+Sending POST request to server2:5000/write with payload: {"shard": "sh1", "curr_idx": 4, "data": [{"Stud_id": "19", "Stud_name": "GHI19", "Stud_marks": "27"}]}
+Status: 200
+Response:
+{'message': 'Data entries added', 'current_idx': 5, 'status': 'success'}
+Updating valid_idx for shard_id:1 to 5
+Getting valid_idx for shard_id:1
+Updating update_idx in shard: 1  in server: 0  to 5
+Sending POST request to server0:5000/updateid with payload: {"shard": "sh1", "update_idx": 5}
+Status: 200
+Response:
+{'message': 'Update index updated', 'status': 'success'}
+Getting valid_idx for shard_id:1
+Updating update_idx in shard: 1  in server: 2  to 5
+Sending POST request to server2:5000/updateid with payload: {"shard": "sh1", "update_idx": 5}
+Status: 200
+Response:
+{'message': 'Update index updated', 'status': 'success'}
+Getting shard_id for stud_id:16
+{1: [{'Stud_id': '16', 'Stud_name': 'GHI16', 'Stud_marks': '27'}]}
+write ke under hu
+Mutex ke under hu
+1 [{'Stud_id': '16', 'Stud_name': 'GHI16', 'Stud_marks': '27'}]
+dict_keys([0, 2])
+Getting valid_idx for shard_id:1
+Writing to shard: sh1 in server: 0 with curr_idx: 5 and data: [{'Stud_id': '16', 'Stud_name': 'GHI16', 'Stud_marks': '27'}]
+Payload
+{'shard': 'sh1', 'curr_idx': 5, 'data': [{'Stud_id': '16', 'Stud_name': 'GHI16', 'Stud_marks': '27'}]}
+Sending POST request to server0:5000/write with payload: {"shard": "sh1", "curr_idx": 5, "data": [{"Stud_id": "16", "Stud_name": "GHI16", "Stud_marks": "27"}]}
+Status: 200
+Response:
+{'message': 'Data entries added', 'current_idx': 6, 'status': 'success'}
+Writing to shard: sh1 in server: 2 with curr_idx: 5 and data: [{'Stud_id': '16', 'Stud_name': 'GHI16', 'Stud_marks': '27'}]
+Payload
+{'shard': 'sh1', 'curr_idx': 5, 'data': [{'Stud_id': '16', 'Stud_name': 'GHI16', 'Stud_marks': '27'}]}
+Sending POST request to server2:5000/write with payload: {"shard": "sh1", "curr_idx": 5, "data": [{"Stud_id": "16", "Stud_name": "GHI16", "Stud_marks": "27"}]}
+Status: 200
+Response:
+{'message': 'Data entries added', 'current_idx': 6, 'status': 'success'}
+Updating valid_idx for shard_id:1 to 6
+Getting valid_idx for shard_id:1
+Updating update_idx in shard: 1  in server: 0  to 6
+Sending POST request to server0:5000/updateid with payload: {"shard": "sh1", "update_idx": 6}
+Status: 200
+Response:
+{'message': 'Update index updated', 'status': 'success'}
+Getting valid_idx for shard_id:1
+Updating update_idx in shard: 1  in server: 2  to 6
+Sending POST request to server2:5000/updateid with payload: {"shard": "sh1", "update_idx": 6}
+Status: 200
+Response:
+{'message': 'Update index updated', 'status': 'success'}
+Getting shard_id for stud_id:100
+{1: [{'Stud_id': '100', 'Stud_name': 'GHI100', 'Stud_marks': '27'}]}
+write ke under hu
+Mutex ke under hu
+1 [{'Stud_id': '100', 'Stud_name': 'GHI100', 'Stud_marks': '27'}]
+dict_keys([0, 2])
+Getting valid_idx for shard_id:1
+Writing to shard: sh1 in server: 0 with curr_idx: 6 and data: [{'Stud_id': '100', 'Stud_name': 'GHI100', 'Stud_marks': '27'}]
+Payload
+{'shard': 'sh1', 'curr_idx': 6, 'data': [{'Stud_id': '100', 'Stud_name': 'GHI100', 'Stud_marks': '27'}]}
+Sending POST request to server0:5000/write with payload: {"shard": "sh1", "curr_idx": 6, "data": [{"Stud_id": "100", "Stud_name": "GHI100", "Stud_marks": "27"}]}
+Status: 200
+Response:
+{'message': 'Data entries added', 'current_idx': 7, 'status': 'success'}
+Writing to shard: sh1 in server: 2 with curr_idx: 6 and data: [{'Stud_id': '100', 'Stud_name': 'GHI100', 'Stud_marks': '27'}]
+Payload
+{'shard': 'sh1', 'curr_idx': 6, 'data': [{'Stud_id': '100', 'Stud_name': 'GHI100', 'Stud_marks': '27'}]}
+Sending POST request to server2:5000/write with payload: {"shard": "sh1", "curr_idx": 6, "data": [{"Stud_id": "100", "Stud_name": "GHI100", "Stud_marks": "27"}]}
+Status: 200
+Response:
+{'message': 'Data entries added', 'current_idx': 7, 'status': 'success'}
+Updating valid_idx for shard_id:1 to 7
+Getting valid_idx for shard_id:1
+Updating update_idx in shard: 1  in server: 0  to 7
+Sending POST request to server0:5000/updateid with payload: {"shard": "sh1", "update_idx": 7}
+Status: 200
+Response:
+{'message': 'Update index updated', 'status': 'success'}
+Getting valid_idx for shard_id:1
+Updating update_idx in shard: 1  in server: 2  to 7
+Sending POST request to server2:5000/updateid with payload: {"shard": "sh1", "update_idx": 7}
+Status: 200
+Response:
+{'message': 'Update index updated', 'status': 'success'}
+In read endpoint
+Sending request to shard:1 with path:/read and payload:{'shard': 'sh1', 'Stud_id': {'low': 0, 'high': 15}} and method:POST
+At client hash
+Returning from client hash function and the server is 0
+Sending request to server:0
+Sending POST request to server0:5000/read with payload: {"shard": "sh1", "Stud_id": {"low": 0, "high": 15}}
+Status: 200
+Response:
+{'data': [{'Stud_id': '4', 'Stud_name': 'GHI4', 'Stud_marks': '27'}, {'Stud_id': '2', 'Stud_name': 'GHI2', 'Stud_marks': '27'}, {'Stud_id': '10', 'Stud_name': 'GHI10', 'Stud_marks': '27'}, {'Stud_id': '3', 'Stud_name': 'GHI3', 'Stud_marks': '27'}], 'status': 'success'}
+In update endpoint
+Getting shard_id for stud_id:4
+Updating update_idx for shard_id:1 to 4
+dict_keys([0, 2])
+ Shard_id: 1 Server_id: 0, Stud_id: , 4,  Stud_name: GHI,  Stud_marks: , 28
+Updating the student with Stud_id: 4 in shard:  sh1 in server: 0 with Stud_name: GHI and Stud_marks: 28
+Sending PUT request to server0:5000/update with payload: {"shard": "sh1", "Stud_id": 4, "data": {"Stud_id": 4, "Stud_name": "GHI", "Stud_marks": "28"}}
+Status: 200
+Response:
+{'message': 'Data entry for Stud_id:4 updated', 'status': 'success'}
+ Shard_id: 1 Server_id: 2, Stud_id: , 4,  Stud_name: GHI,  Stud_marks: , 28
+Updating the student with Stud_id: 4 in shard:  sh1 in server: 2 with Stud_name: GHI and Stud_marks: 28
+Sending PUT request to server2:5000/update with payload: {"shard": "sh1", "Stud_id": 4, "data": {"Stud_id": 4, "Stud_name": "GHI", "Stud_marks": "28"}}
+Status: 200
+Response:
+{'message': 'Data entry for Stud_id:4 updated', 'status': 'success'}
+Updating update_idx for shard_id:1 to -1
+In read endpoint
+Sending request to shard:1 with path:/read and payload:{'shard': 'sh1', 'Stud_id': {'low': 0, 'high': 15}} and method:POST
+At client hash
+Returning from client hash function and the server is 0
+Sending request to server:0
+Sending POST request to server0:5000/read with payload: {"shard": "sh1", "Stud_id": {"low": 0, "high": 15}}
+Status: 200
+Response:
+{'data': [{'Stud_id': '4', 'Stud_name': 'GHI', 'Stud_marks': '28'}, {'Stud_id': '2', 'Stud_name': 'GHI2', 'Stud_marks': '27'}, {'Stud_id': '10', 'Stud_name': 'GHI10', 'Stud_marks': '27'}, {'Stud_id': '3', 'Stud_name': 'GHI3', 'Stud_marks': '27'}], 'status': 'success'}
+In add endpoint
+Creating shard object
+Inside add_shard function. adding 4 info to ShardT
+Inside add_server function of servers_obj for server:5 having shard list:[1, 2, 4]
+adding server 5 in metadata_obj
+adding server:5 having shard_list: [1, 2, 4] in MapT
+making server container
+calling configure_and_setup for 5
+calling configure_server for 5 having [1, 2, 4]
+Configuring server:5 with shard_list:[1, 2, 4]
+Sending POST request to server5:5000/config with payload: {"schema": {"columns": ["Stud_id", "Stud_name", "Stud_marks"], "dtypes": ["Number", "String", "String"]}, "shards": ["sh1", "sh2", "sh4"]}
+Status: 200
+Response:
+{'message': '5:sh1, 5:sh2, 5:sh4 configured', 'status': 'success'}
+Inside for loop for shard:1
+At client hash
+Returning from client hash function and the server is 0
+Copying shard:1 to server:5
+Sending GET request to server0:5000/copy with payload: {"shards": ["sh1"]}
+Status: 200
+Response:
+{'sh1': [{'Stud_id': '4', 'Stud_name': 'GHI', 'Stud_marks': '28'}, {'Stud_id': '2', 'Stud_name': 'GHI2', 'Stud_marks': '27'}, {'Stud_id': '10', 'Stud_name': 'GHI10', 'Stud_marks': '27'}, {'Stud_id': '3', 'Stud_name': 'GHI3', 'Stud_marks': '27'}, {'Stud_id': '19', 'Stud_name': 'GHI19', 'Stud_marks': '27'}, {'Stud_id': '16', 'Stud_name': 'GHI16', 'Stud_marks': '27'}, {'Stud_id': '100', 'Stud_name': 'GHI100', 'Stud_marks': '27'}], 'status': 'success'}
+adding server:5 to object of 1
+Adding server 5
+At get hash
+Returning from get hash function and the list is [152, 156, 400, 208, 65, 61, 0, 348, 424]
+Added server 5 with indexes [152, 156, 400, 208, 65, 61, 0, 348, 424]
+Sending POST request to server5:5000/write with payload: {"shard": "sh1", "curr_idx": 0, "data": [{"Stud_id": "4", "Stud_name": "GHI", "Stud_marks": "28"}, {"Stud_id": "2", "Stud_name": "GHI2", "Stud_marks": "27"}, {"Stud_id": "10", "Stud_name": "GHI10", "Stud_marks": "27"}, {"Stud_id": "3", "Stud_name": "GHI3", "Stud_marks": "27"}, {"Stud_id": "19", "Stud_name": "GHI19", "Stud_marks": "27"}, {"Stud_id": "16", "Stud_name": "GHI16", "Stud_marks": "27"}, {"Stud_id": "100", "Stud_name": "GHI100", "Stud_marks": "27"}]}
+Status: 200
+Response:
+{'message': 'Data entries added', 'current_idx': 7, 'status': 'success'}
+Inside for loop for shard:2
+At client hash
+Returning from client hash function and the server is 0
+Copying shard:2 to server:5
+Sending GET request to server0:5000/copy with payload: {"shards": ["sh2"]}
+Status: 200
+Response:
+{'sh2': [], 'status': 'success'}
+adding server:5 to object of 2
+Adding server 5
+At get hash
+Returning from get hash function and the list is [144, 112, 2, 364, 289, 488, 384, 508, 44]
+Added server 5 with indexes [144, 112, 2, 364, 289, 488, 384, 508, 44]
+Sending POST request to server5:5000/write with payload: {"shard": "sh2", "curr_idx": 0, "data": []}
+Status: 200
+Response:
+{'message': 'Data entries added', 'current_idx': 0, 'status': 'success'}
+Inside for loop for shard:4
+At client hash
+adding server:5 to object of 4
+Adding server 5
+At get hash
+Returning from get hash function and the list is [384, 304, 64, 224, 385, 456, 264, 352, 508]
+Added server 5 with indexes [384, 304, 64, 224, 385, 456, 264, 352, 508]
+Sending heartbeat request to  server0
+Inside add_server function of servers_obj for server:6 having shard list:[2, 3, 4]
+adding server 6 in metadata_obj
+adding server:6 having shard_list: [2, 3, 4] in MapT
+Sending heartbeat request to  server1
+making server container
+Sending heartbeat request to  server2
+Sending heartbeat request to  server5
+calling configure_and_setup for 6
+calling configure_server for 6 having [2, 3, 4]
+Configuring server:6 with shard_list:[2, 3, 4]
+Sending POST request to server6:5000/config with payload: {"schema": {"columns": ["Stud_id", "Stud_name", "Stud_marks"], "dtypes": ["Number", "String", "String"]}, "shards": ["sh2", "sh3", "sh4"]}
+Status: 200
+Response:
+{'message': '6:sh2, 6:sh3, 6:sh4 configured', 'status': 'success'}
+Inside for loop for shard:2
+At client hash
+Returning from client hash function and the server is 0
+Copying shard:2 to server:6
+Sending GET request to server0:5000/copy with payload: {"shards": ["sh2"]}
+Status: 200
+Response:
+{'sh2': [], 'status': 'success'}
+adding server:6 to object of 2
+Adding server 6
+At get hash
+Returning from get hash function and the list is [248, 476, 3, 452, 65, 45, 256, 124, 444]
+Added server 6 with indexes [248, 476, 3, 452, 65, 45, 256, 124, 444]
+Sending POST request to server6:5000/write with payload: {"shard": "sh2", "curr_idx": 0, "data": []}
+Status: 200
+Response:
+{'message': 'Data entries added', 'current_idx': 0, 'status': 'success'}
+Inside for loop for shard:3
+At client hash
+Returning from client hash function and the server is 1
+Copying shard:3 to server:6
+Sending GET request to server1:5000/copy with payload: {"shards": ["sh3"]}
+Status: 200
+Response:
+{'sh3': [], 'status': 'success'}
+adding server:6 to object of 3
+Adding server 6
+At get hash
+Returning from get hash function and the list is [416, 393, 212, 36, 32, 72, 256, 460, 424]
+Added server 6 with indexes [416, 393, 212, 36, 32, 72, 256, 460, 424]
+Sending POST request to server6:5000/write with payload: {"shard": "sh3", "curr_idx": 0, "data": []}
+Status: 200
+Response:
+{'message': 'Data entries added', 'current_idx': 0, 'status': 'success'}
+Inside for loop for shard:4
+At client hash
+Returning from client hash function and the server is 5
+Copying shard:4 to server:6
+Sending GET request to server5:5000/copy with payload: {"shards": ["sh4"]}
+Status: 200
+Response:
+{'sh4': [], 'status': 'success'}
+adding server:6 to object of 4
+Adding server 6
+At get hash
+Returning from get hash function and the list is [225, 476, 128, 226, 324, 232, 0, 172, 400]
+Added server 6 with indexes [225, 476, 128, 226, 324, 232, 0, 172, 400]
+Sending POST request to server6:5000/write with payload: {"shard": "sh4", "curr_idx": 0, "data": []}
+Status: 200
+Response:
+{'message': 'Data entries added', 'current_idx': 0, 'status': 'success'}
+Sending heartbeat request to  server0
+Sending heartbeat request to  server1
+in rm endpoint
+Inside remove_server function of servers_obj for server:0
+Getting shards for server:0
+Removing server 0 from metadata_obj
+removing server 0 from shard 1
+Removing server 0
+Indexes are [272, 40, 64, 108, 384, 240, 168, 112, 392] and the server is 0
+removing server 0 from shard 2
+Removing server 0
+Indexes are [176, 376, 16, 500, 192, 408, 496, 436, 0] and the server is 0
+Removing server:0 from MapT
+Sending heartbeat request to  server2
+Stopping and removing container of server:0
+Sending heartbeat request to  server5
+Sending heartbeat request to  server6
+Server0 removed
+Sending heartbeat request to  server1
+In read endpoint
+Sending heartbeat request to  server2
+Sending request to shard:1 with path:/read and payload:{'shard': 'sh1', 'Stud_id': {'low': 0, 'high': 15}} and method:POST
+At client hash
+Returning from client hash function and the server is 2
+Sending request to server:2
+Sending POST request to server2:5000/read with payload: {"shard": "sh1", "Stud_id": {"low": 0, "high": 15}}
+Sending heartbeat request to  server5
+Status: 200
+Response:
+{'data': [{'Stud_id': '4', 'Stud_name': 'GHI', 'Stud_marks': '28'}, {'Stud_id': '2', 'Stud_name': 'GHI2', 'Stud_marks': '27'}, {'Stud_id': '10', 'Stud_name': 'GHI10', 'Stud_marks': '27'}, {'Stud_id': '3', 'Stud_name': 'GHI3', 'Stud_marks': '27'}], 'status': 'success'}
+Sending heartbeat request to  server6
+in del endpoint
+Getting shard_id for stud_id:2
+Updating update_idx for shard_id:1 to 2
+Deleting the student with Stud_id: 2 from shard:  sh1 in server: 2
+Sending DELETE request to server2:5000/del with payload: {"shard": "sh1", "Stud_id": 2}
+Status: 200
+Response:
+{'message': 'Data entry with Stud_id:2 removed', 'status': 'success'}
+Deleting the student with Stud_id: 2 from shard:  sh1 in server: 5
+Sending DELETE request to server5:5000/del with payload: {"shard": "sh1", "Stud_id": 2}
+Status: 200
+Response:
+{'message': 'Data entry with Stud_id:2 removed', 'status': 'success'}
+Updating update_idx for shard_id:1 to -1
+In read endpoint
+Sending request to shard:1 with path:/read and payload:{'shard': 'sh1', 'Stud_id': {'low': 0, 'high': 15}} and method:POST
+At client hash
+Returning from client hash function and the server is 5
+Sending request to server:5
+Sending POST request to server5:5000/read with payload: {"shard": "sh1", "Stud_id": {"low": 0, "high": 15}}
+Status: 200
+Response:
+{'data': [], 'status': 'success'}
+Sending heartbeat request to  server1
+Sending heartbeat request to  server2
+Sending heartbeat request to  server5
+Sending heartbeat request to  server6
+Sending heartbeat request to  server1
+Sending heartbeat request to  server2
+Sending heartbeat request to  server5
+Sending heartbeat request to  server6
+Sending heartbeat request to  server1
+Sending heartbeat request to  server2
+Sending heartbeat request to  server5
+Sending heartbeat request to  server6
+Sending heartbeat request to  server1
+Sending heartbeat request to  server2
+Sending heartbeat request to  server5
+Sending heartbeat request to  server6
+Sending heartbeat request to  server1
+Sending heartbeat request to  server2
+Sending heartbeat request to  server5
+Sending heartbeat request to  server6
+Sending heartbeat request to  server1
+Sending heartbeat request to  server2
+Sending heartbeat request to  server5
+Sending heartbeat request to  server6
+Sending heartbeat request to  server1
+Sending heartbeat request to  server2
+Sending heartbeat request to  server5
+Sending heartbeat request to  server6
+Sending heartbeat request to  server1
+Sending heartbeat request to  server2
+Sending heartbeat request to  server5
+Sending heartbeat request to  server6
+Sending heartbeat request to  server1
+Sending heartbeat request to  server2
+Sending heartbeat request to  server5
+Sending heartbeat request to  server6
+Sending heartbeat request to  server1
+Sending heartbeat request to  server2
+Sending heartbeat request to  server5
+Sending heartbeat request to  server6
+Sending heartbeat request to  server1
+Sending heartbeat request to  server2
+Sending heartbeat request to  server5
+Sending heartbeat request to  server6
+Sending heartbeat request to  server1
+Sending heartbeat request to  server2
+Sending heartbeat request to  server5
+Sending heartbeat request to  server6
+Sending heartbeat request to  server1
+Sending heartbeat request to  server2
+Sending heartbeat request to  server5
+Sending heartbeat request to  server6
+Sending heartbeat request to  server1
+Sending heartbeat request to  server2
+Sending heartbeat request to  server5
+Sending heartbeat request to  server6
+Sending heartbeat request to  server1
+Sending heartbeat request to  server2
+Sending heartbeat request to  server5
+Sending heartbeat request to  server6
+Sending heartbeat request to  server1
+Sending heartbeat request to  server2
+Sending heartbeat request to  server5
+Sending heartbeat request to  server6
+Sending heartbeat request to  server1
+Sending heartbeat request to  server2
+Sending heartbeat request to  server5
+Sending heartbeat request to  server6
+Server is shutting down...

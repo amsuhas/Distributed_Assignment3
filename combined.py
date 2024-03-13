@@ -39,6 +39,7 @@ class Metadata:
 #        MapT (Shard id: Number, Server id: Number)
         
         # for shard in shards:
+        print("Creating tables")
         table_name = "ShardT"
         create_table_query = f"CREATE TABLE {table_name} ( Stud_id_low INT, Shard_id INT, Shard_size INT, Valid_idx INT, Update_idx INT);"
         print(create_table_query)
@@ -55,6 +56,12 @@ class Metadata:
         insert_query = f"INSERT INTO ShardT (Stud_id_low, Shard_id, Shard_size, Valid_idx, Update_idx) VALUES ({shard_id_low}, {shard_id}, {shard_size}, 0, -1);"
         cursor.execute(insert_query)
         connection.commit()    
+
+    def remove_shard(self, shard_id):
+        print(f"Removing shard:{shard_id} from ShardT")
+        delete_query = f"DELETE FROM ShardT WHERE Shard_id = {shard_id};"
+        cursor.execute(delete_query)
+        connection.commit()
     
     def add_server(self, server_id, shard_list):
         print(f"adding server:{server_id} having shard_list: {shard_list} in MapT")
@@ -64,23 +71,27 @@ class Metadata:
         connection.commit()
 
     def remove_server(self, server_id):
+        print(f"Removing server:{server_id} from MapT")
         delete_query = f"DELETE FROM MapT WHERE Server_id = {server_id};"
         cursor.execute(delete_query)
         connection.commit()
 
     def get_shards(self, server_id):
+        print(f"Getting shards for server:{server_id}")
         select_query = f"SELECT Shard_id FROM MapT WHERE Server_id = {server_id};"
         cursor.execute(select_query)
         shard_list = cursor.fetchall()
         return shard_list
 
     def get_all_shards(self):
+        print(f"Getting all shards")
         select_query = f"SELECT Stud_id_low, Shard_id, Shard_size FROM ShardT;"
         cursor.execute(select_query)
         shard_list = cursor.fetchall()
         return shard_list
     
     def get_shard_id(self, stud_id):
+        print(f"Getting shard_id for stud_id:{stud_id}")
         # also check if stud_id is within the range of the shard
         select_query = f"SELECT Shard_id FROM ShardT WHERE Stud_id_low <= {stud_id} AND Stud_id_low + Shard_size > {stud_id};"
         cursor.execute(select_query)
@@ -90,29 +101,34 @@ class Metadata:
         return shard_id[0][0]
     
     def get_server_id(self, shard_id):
+        print(f"Getting server_id for shard_id:{shard_id}")
         select_query = f"SELECT Server_id FROM MapT WHERE Shard_id = {shard_id};"
         cursor.execute(select_query)
         server_ids = cursor.fetchall()
         return server_ids
     
     def get_valid_idx(self, shard_id):
+        print(f"Getting valid_idx for shard_id:{shard_id}")
         select_query = f"SELECT Valid_idx FROM ShardT WHERE Shard_id = {shard_id};"
         cursor.execute(select_query)
         valid_idx = cursor.fetchall()
         return valid_idx[0][0]
     
     def get_update_idx(self, shard_id):
+        print(f"Getting update_idx for shard_id:{shard_id}")
         select_query = f"SELECT Update_idx FROM ShardT WHERE Shard_id = {shard_id};"
         cursor.execute(select_query)
         update_idx = cursor.fetchall()
         return update_idx[0][0]
     
     def update_valid_idx(self, shard_id, valid_idx):
+        print(f"Updating valid_idx for shard_id:{shard_id} to {valid_idx}")
         update_query = f"UPDATE ShardT SET Valid_idx = {valid_idx} WHERE Shard_id = {shard_id};"
         cursor.execute(update_query)
         connection.commit()
 
     def update_update_idx(self, shard_id, update_idx):
+        print(f"Updating update_idx for shard_id:{shard_id} to {update_idx}")
         update_query = f"UPDATE ShardT SET Update_idx = {update_idx} WHERE Shard_id = {shard_id};"
         cursor.execute(update_query)
         connection.commit()
@@ -130,6 +146,7 @@ class Metadata:
 
 class Shards:
     def __init__(self):
+        print("Creating shard object")
         self.num_serv = 0
         self.counter = 0
         self.serv_dict = {}
@@ -142,6 +159,7 @@ class Shards:
 
 
     def get_hash(self,host_name):
+        print("At get hash")
         li=[]
         for j in range(self.num_vservs):
             prime_multiplier = 37
@@ -165,12 +183,11 @@ class Shards:
                     li.append(nindex)
                     break
                 jp+=1
-        print("At get indexes")
-        print(host_name)
-        print(li)
+        print(f"Returning from get hash function and the list is {li}")
         return li
 
     def client_hash(self,r_id):
+        print("At client hash")
         prime_multiplier = 31
         magic_number = 0x5F3759DF
         constant_addition = 7
@@ -191,23 +208,25 @@ class Shards:
             jp+=1
         nindex += 1
         nindex %= self.buf_size
-        print(self.serv_id_dict)
+        #print(self.serv_id_dict)
         if(jp!=512 and len(self.serv_id_dict) != 0):
             lower_bound_key = self.serv_id_dict.bisect_left(nindex)
             if lower_bound_key == len(self.serv_id_dict):
+                print(f"Returning from client hash function and the server is {self.cont_hash[self.serv_id_dict.iloc[0]][0]}")
                 return self.cont_hash[self.serv_id_dict.iloc[0]][0], ((nindex-1)+self.buf_size)%self.buf_size
             else:
+                print(f"Returning from client hash function and the server is {self.cont_hash[self.serv_id_dict.iloc[lower_bound_key]][0]}")
                 return self.cont_hash[self.serv_id_dict.iloc[lower_bound_key]][0], ((nindex-1)+self.buf_size)%self.buf_size
         else:
             return None
         
 
     def rm_server(self,host_name):
-        print("Removing server" + str(host_name))
-        print(self.serv_dict)
+        print(f"Removing server {host_name}")
+        #print(self.serv_dict)
         # print("from ")
         indexes=self.serv_dict[host_name][0]
-        print(indexes)
+        print(f"Indexes are {indexes} and the server is {host_name}")
         with self.mutex:
             for ind in indexes:
                 self.cont_hash[ind][0]=None
@@ -224,6 +243,7 @@ class Shards:
         #     print("No such container found!!")
 
     def add_server(self,serv_id):
+        print(f"Adding server {serv_id}")
         self.num_serv += 1
         self.counter += 1
         
@@ -236,7 +256,7 @@ class Shards:
         # print(serv_id)
         # print(serv_listid)
         self.serv_dict[serv_id] = [serv_listid,0]
-        print(self.serv_dict)
+        print(f"Added server {serv_id} with indexes {serv_listid}")
         return
 
 
@@ -257,8 +277,8 @@ class Servers:
         global client
         # print("Adding server" + str(server_id))
         server_name="server"+str(server_id)
-        print(server_name)
-        print(shard_list)
+        # print(server_name)
+        # print(shard_list)
         # for shard in shard_list:
         #     shard_id_object_mapping[shard].add_server(server_id)
         print(f"adding server {server_id} in metadata_obj")
@@ -273,21 +293,33 @@ class Servers:
         return
     
     def remove_server(self, server_id):
-        print(f"Inside remove_server function of servers_obj for server:{server_id}") 
+        print(f"Inside remove_server function of servers_obj for server:{server_id}")
+        if server_id not in self.server_to_docker_container_map.keys():
+            print(f"Server {server_id} not found")
+            print(self.server_to_docker_container_map.keys())
+            return
         global metadata_obj
         shard_list = metadata_obj.get_shards(server_id)
         for i in range(len(shard_list)):
             shard_list[i]=int(shard_list[i][0])
-        print(shard_list)
+        print(f"Removing server {server_id} from metadata_obj")
         for shard in shard_list:
-            print(shard)
+            print(f"removing server {server_id} from shard {shard}")
             shard_id_object_mapping[shard].rm_server(server_id)
+            if(len(shard_id_object_mapping[shard].serv_dict)==0):
+                # delete shard object
+                print(f"deleting shard object for {shard}")
+                shard_id_object_mapping.pop(shard)
+                metadata_obj.remove_shard(shard)
+
         metadata_obj.remove_server(server_id)
         # time.sleep(1)
         try:
+            print(f"Stopping and removing container of server:{server_id}")
             container = self.server_to_docker_container_map[server_id]
             container.stop()
             container.remove()
+            time.sleep(5)
         except:
             print("No such container found!!")
         print("Server" + str(server_id) + " removed")
@@ -309,13 +341,14 @@ def send_request(host='server', port=5000, path='/config',payload={},method='POS
     json_payload = json.dumps(payload)
     
     connection = http.client.HTTPConnection(host, port)
-    print(f'Sending {method} request to {host}:{port}{path}')
+    print(f'Sending {method} request to {host}:{port}{path} with payload: {json_payload}')
     # print(payload)
     connection.request(method, path, json_payload, headers)
 
     response = connection.getresponse()
     print(f'Status: {response.status}')
-    # print('Response:')
+
+    print('Response:')
     # print(response.read().decode('utf-8'))
     response_data = response.read().decode('utf-8')
     # print(response_data)
@@ -330,14 +363,14 @@ def send_request(host='server', port=5000, path='/config',payload={},method='POS
 
 
 def client_request_sender(shard_id, path, payload, method):
+    print(f"Sending request to shard:{shard_id} with path:{path} and payload:{payload} and method:{method}")
     rid = random.randrange(99999, 1000000, 1)
     shard_obj = shard_id_object_mapping[shard_id]
     with shard_obj.mutex:
         out = shard_obj.client_hash(rid)
     if out==None:
         return None
-    print(out[0])
-    print("This server is coming")
+    print(f"Sending request to server:{out[0]}")
     server_name = "server" + str(out[0])
     response, _ = send_request(server_name, 5000, path, payload, method)
     with shard_obj.mutex:
@@ -349,7 +382,7 @@ def client_request_sender(shard_id, path, payload, method):
 
 
 def configure_server(server_id, shard_list):
-    print(f"sending configure message to server:{server_id}")
+    print(f"Configuring server:{server_id} with shard_list:{shard_list}")
 
     shards = []
     for e in shard_list:
@@ -360,8 +393,6 @@ def configure_server(server_id, shard_list):
     "schema": global_schema,
     "shards": shards,
     }
-    print(global_schema)
-    print(Payload_Json)
     resp, _=send_request('server'+str(server_id), 5000, '/config',Payload_Json,'POST')
     return resp
 
@@ -375,6 +406,7 @@ def configure_and_setup(server_id, shard_list):
     configure_server(server_id, shard_list)
     # rid = random.randrange(99999, 1000000, 1)
     for shard in shard_list:
+        print(f"Inside for loop for shard:{shard}")
         rid = random.randrange(99999, 1000000, 1)
         shard_obj = shard_id_object_mapping[shard]
         with shard_obj.mutex:
@@ -391,8 +423,9 @@ def configure_and_setup(server_id, shard_list):
         payload = {
             "shards": payload_shard_list
         }
+        print(f"Copying shard:{shard} to server:{server_id}")
         response, _ = send_request(server_name, 5000, '/copy', payload, 'GET')
-        print(response)
+        #print(response)
         with shard_obj.mutex:
             shard_obj.cont_hash[out[1]][1]=None
         
@@ -420,13 +453,12 @@ def configure_and_setup(server_id, shard_list):
 
 # ports = {"server1": 8001, "server2": 8002}
 def send_get_request(host='localhost', port=5000, path='/'):
+    print(f"Sending GET request to {host}:{port}{path}")
     connection = http.client.HTTPConnection(host, port)
     connection.request('GET', path)
     
     response = connection.getresponse()
-    # print(f'Status: {response.status}')
-    # print('Response:')
-    # print(response.read().decode('utf-8'))
+    print(f'Status: {response.status} Response: {response.read().decode("utf-8")}')
     
     connection.close()
     return response
@@ -438,19 +470,21 @@ def send_get_request_with_timeout(host_name='localhost', port=5000, path='/'):
     global servers_obj
     try:
         connection = http.client.HTTPConnection(host_name, port, timeout=5)    
-        print("Sending heartbeat request to " + host_name)
+        print(f"Sending heartbeat request to  {host_name}")
         connection.request('GET', path)
         response = connection.getresponse()
         response.read()
         connection.close()
     except Exception as e:
+        print(e)
+        print(f"ERROR!! Heartbeat response not received from {host_name}")
         with servers_obj.mutex:
-            server_id = host_name[6:]
+            server_id = int(host_name[6:])
             shard_list = metadata_obj.get_shards(server_id)
+            for i in range(len(shard_list)):
+                shard_list[i]=int(shard_list[i][0])
             servers_obj.remove_server(server_id)
             servers_obj.add_server(server_id, shard_list)
-        print(e)
-        print("ERROR!! Heartbeat response not received from " + host_name)
     return
 
 def thread_heartbeat():
@@ -481,7 +515,7 @@ def thread_heartbeat():
 
 
 def server_copy(shard_list, server_id):
-    print("Copying shards: " + shard_list + " to server: " + str(server_id))
+    print(f"Copying shards: {shard_list} to server: {server_id}")
     payload = {
         "shards": shard_list
     }
@@ -490,7 +524,7 @@ def server_copy(shard_list, server_id):
     return response
 
 def server_read(shard, Stud_id_low, Stud_id_high, server_id):
-    print("Reading from shard: " + shard + " in server: " + str(server_id) + " for Stud_id range: " + str(Stud_id_low) + " to " + str(Stud_id_high))
+    print(f"Reading from shard: {shard} in server: {server_id} with Stud_id_low: {Stud_id_low} and Stud_id_high: {Stud_id_high}")
     Stud_id_range = {"low": Stud_id_low, "high": Stud_id_high}
     payload = {
         "shard": shard,
@@ -503,7 +537,7 @@ def server_read(shard, Stud_id_low, Stud_id_high, server_id):
     return response
 
 def server_write(shard, curr_idx, data, server_id):
-    print("Writing to shard: " + shard + " in server: " + str(server_id) + " at index: " + str(curr_idx))
+    print(f"Writing to shard: {shard} in server: {server_id} with curr_idx: {curr_idx} and data: {data}")
     payload = {
         "shard": shard,
         "curr_idx": curr_idx,
@@ -516,7 +550,7 @@ def server_write(shard, curr_idx, data, server_id):
     return response
 
 def server_update(shard, Stud_id, sname, smarks, server_id):
-    print("Updating the student with Stud_id: " + str(Stud_id) + " in shard: " + shard + " in server: " + str(server_id))
+    print(f"Updating the student with Stud_id: {Stud_id} in shard:  {shard} in server: {server_id} with Stud_name: {sname} and Stud_marks: {smarks}")
     sid=Stud_id
     data = {"Stud_id": sid, "Stud_name": sname, "Stud_marks": smarks}
     payload = {
@@ -529,7 +563,7 @@ def server_update(shard, Stud_id, sname, smarks, server_id):
     return response
 
 def server_delete(shard, Stud_id, server_id):
-    print("Deleting the student with Stud_id: " + str(Stud_id) + " from shard: " + shard + " in server: " + str(server_id))
+    print(f"Deleting the student with Stud_id: {Stud_id} from shard:  {shard} in server: {server_id}")
     payload = {
         "shard": shard,
         "Stud_id": Stud_id
@@ -539,7 +573,7 @@ def server_delete(shard, Stud_id, server_id):
     return response, status_code 
 
 def server_updateid(server_id, shard_id, update_idx):
-    print("Updating update_idx" + " in shard: " + shard_id + " in server: " + str(server_id) + " to " + str(update_idx))
+    print(f"Updating update_idx in shard: {shard_id}  in server: {server_id}  to {update_idx}")
     shard = "sh" + str(shard_id)
     payload = {
         "shard": shard,
@@ -698,7 +732,7 @@ class SimpleHandlerWithMutex(SimpleHTTPRequestHandler):
                     last_idx=0
                     print(shard_id,entries_list)
                     print(shard_obj.serv_dict.keys())
-                    cur_valid_idx = metadata_obj.get_valid_idx()
+                    cur_valid_idx = metadata_obj.get_valid_idx(shard_id)
                     for server_id in shard_obj.serv_dict.keys():
                         response = server_write('sh'+str(shard_id), cur_valid_idx, entries_list, server_id)
                         shard_obj.serv_dict[server_id][1] = int(response["current_idx"])
@@ -978,7 +1012,7 @@ class SimpleHandlerWithMutex(SimpleHTTPRequestHandler):
                 metadata_obj.update_update_idx(shard_id, sid)
                 print(shard_obj.serv_dict.keys())
                 for server_id in shard_obj.serv_dict.keys():
-                    print(" Shard_id: ", shard_id, " Server_id: ", server_id, " Stud_id: ", sid, " Stud_name: ", sname, " Stud_marks: ", smarks)
+                    print(f" Shard_id: {shard_id} Server_id: {server_id}, Stud_id: , {sid},  Stud_name: {sname},  Stud_marks: , {smarks}")
 
                     response = server_update('sh'+str(shard_id), sid, sname, smarks, server_id)
                 metadata_obj.update_update_idx(shard_id, -1)
@@ -1133,10 +1167,10 @@ if __name__ == '__main__':
         
     print('Starting server on port 5000...')
     try:
-        # heart_beat_thread = threading.Thread(target=thread_heartbeat)
-        # heart_beat_thread.start()
+        heart_beat_thread = threading.Thread(target=thread_heartbeat)
+        heart_beat_thread.start()
         httpd.serve_forever()
-        # heart_beat_thread.join()
+        heart_beat_thread.join()
 
     except KeyboardInterrupt:
         print('Server is shutting down...')
