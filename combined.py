@@ -333,13 +333,15 @@ def client_request_sender(shard_id, path, payload, method):
     rid = random.randrange(99999, 1000000, 1)
     shard_obj = shard_id_object_mapping[shard_id]
     with shard_obj.mutex:
-        serv_id, index = shard_obj.client_hash(rid)
-    print(serv_id)
+        out = shard_obj.client_hash(rid)
+    if out==None:
+        return None
+    print(out[0])
     print("This server is coming")
-    server_name = "server" + str(serv_id)
+    server_name = "server" + str(out[0])
     response, _ = send_request(server_name, 5000, path, payload, method)
     with shard_obj.mutex:
-        shard_obj.cont_hash[index][1] = None
+        shard_obj.cont_hash[out[1]][1] = None
     return response
 
 
@@ -823,6 +825,8 @@ class SimpleHandlerWithMutex(SimpleHTTPRequestHandler):
                     payload['Stud_id']['low']=max(low,sh_low)
                     payload['Stud_id']['high']=min(high,sh_low+size)
                     response=client_request_sender(shard, '/read',payload,'POST')
+                    if response==None:
+                        continue
                     response_payload['shards_queried'].append('sh'+str(shard))
                     for entries in response['data']:
                         response_payload['data'].append(entries)
