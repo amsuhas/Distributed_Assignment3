@@ -12,8 +12,9 @@ RUN apt-get update
 RUN apt-get install -y python3-pip
 RUN pip install --no-cache-dir -r requirements.txt
 RUN apt-get install -y nano
-RUN apt-get install -y mysql-server 
-RUN apt-get install -y systemctl
+# RUN apt-get install -y mysql-server 
+# RUN apt-get install -y systemctl
 
 # Run load_balancer.py when the container launches 
-CMD ["bash", "-c", "chmod +x initializer_script_lb; ./initializer_script_lb;"]
+# CMD ["bash", "-c", "chmod +x initializer_script_lb; ./initializer_script_lb;"]
+CMD ["bash", "-c", "python3 combined_lb.py"]

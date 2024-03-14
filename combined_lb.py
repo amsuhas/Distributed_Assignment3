@@ -12,7 +12,6 @@ import threading
 import copy
 import os
 import mysql.connector
-import Datastructures
 
 
 global global_schema
@@ -21,11 +20,17 @@ client = docker.from_env()
 shard_id_object_mapping = {}
 
 
+# connection = mysql.connector.connect(
+#     host="localhost",
+#     user="myuser",
+#     password="mypass",
+#     database="Metadata"
+# )
+
 connection = mysql.connector.connect(
-    host="localhost",
-    user="myuser",
-    password="mypass",
-    database="Metadata"
+    host="lb_database",  # Container name of MySQL
+    user="root",
+    password="password"
 )
 
 cursor = connection.cursor()
@@ -35,6 +40,8 @@ cursor = connection.cursor()
 
 class Metadata:
     def __init__(self):
+        cursor.execute("CREATE DATABASE IF NOT EXISTS Metadata")
+        cursor.execute("USE Metadata")
 
         # print("Creating tables")
         table_name = "ShardT"
