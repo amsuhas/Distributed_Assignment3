@@ -14,7 +14,10 @@ run_lb_database:
 	docker run --name lb_database --hostname lb_database --network my_network -e MYSQL_ROOT_PASSWORD=password -d mysql:latest
 
 run_lb_script:
-	docker run --privileged -dit --name load_balancer --hostname load_balancer -v /var/run/docker.sock:/var/run/docker.sock --network my_network lb_image 
+	docker run --privileged -dit --name load_balancer --hostname load_balancer -v /var/run/docker.sock:/var/run/docker.sock --network my_network lb_image
+
+clear_lb_database:
+	docker exec -it lb_database mysql -uroot -ppassword -e "DROP DATABASE IF EXISTS Metadata;" 
 
 run_client:
 	docker run -dit --name client --hostname client --network my_network client_image

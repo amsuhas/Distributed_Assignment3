@@ -270,6 +270,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
             delete_query = f"DELETE FROM {shard} WHERE Stud_id = {sid};"
             cursor.execute(delete_query)
             connection.commit()
+            update_idx_dict[shard] = update_idx_dict[shard] - 1
 
             self.send_response(200)
             self.send_header('Content-type', 'application/json')

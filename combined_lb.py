@@ -4,7 +4,7 @@ import asyncio
 import random
 from sortedcontainers import SortedDict
 import docker
-from http.server import ThreadingHTTPServer, SimpleHTTPRequestHandler
+from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
 import threading
 import json
 import math
@@ -157,7 +157,7 @@ class Shards:
         self.num_vservs = int(math.log2(self.buf_size))
         self.cont_hash = [[None, None] for _ in range(self.buf_size)]
         self.serv_id_dict = SortedDict()
-        self.update_mutex = threading.Lock()
+        # self.update_mutex = threading.Lock()
         self.mutex = threading.Lock()
 
 
@@ -200,18 +200,18 @@ class Shards:
         nindex = (nindex ^ (nindex & (nindex ^ (nindex - 1)))) % self.buf_size  
         nindex+=self.buf_size
         nindex%=self.buf_size
-        jp=0
-        while(jp<self.buf_size):
-            if self.cont_hash[nindex][1]!=None:
-                nindex+=1
-                nindex%=self.buf_size
-            else:
-                self.cont_hash[nindex][1]=r_id
-                break
-            jp+=1
+        # jp=0
+        # while(jp<self.buf_size):
+        #     if self.cont_hash[nindex][1]!=None:
+        #         nindex+=1
+        #         nindex%=self.buf_size
+        #     else:
+        #         self.cont_hash[nindex][1]=r_id
+        #         break
+        #     jp+=1
         nindex += 1
         nindex %= self.buf_size
-        if(jp!=512 and len(self.serv_id_dict) != 0):
+        if(len(self.serv_id_dict) != 0):
             lower_bound_key = self.serv_id_dict.bisect_left(nindex)
             if lower_bound_key == len(self.serv_id_dict):
                 # print(f"Returning from client hash function and the server is {self.cont_hash[self.serv_id_dict.iloc[0]][0]}")
@@ -228,13 +228,15 @@ class Shards:
 
         indexes=self.serv_dict[host_name][0]
         # print(f"Indexes are {indexes} and the server is {host_name}")
-        with self.mutex:
-            for ind in indexes:
-                self.cont_hash[ind][0]=None
-                del self.serv_id_dict[ind]
-            self.num_serv-=1
+        # with self.mutex:
+        # print(f"Inside mutex for removing server {host_name}")
+        for ind in indexes:
+            self.cont_hash[ind][0]=None
+            del self.serv_id_dict[ind]
+        self.num_serv-=1
 
-            del self.serv_dict[host_name]
+        del self.serv_dict[host_name]
+        # print(f"Removed server {host_name}")
 
     def add_server(self,serv_id):
         # print(f"Adding server {serv_id}")
@@ -282,7 +284,7 @@ class Servers:
         if server_id not in self.server_to_docker_container_map.keys():
             # print(f"Server {server_id} not found")
             # print(self.server_to_docker_container_map.keys())
-            return
+            return -1
         global metadata_obj
         shard_list = metadata_obj.get_shards(server_id)
         for i in range(len(shard_list)):
@@ -290,15 +292,15 @@ class Servers:
         # print(f"Removing server {server_id} from metadata_obj")
         for shard in shard_list:
             # print(f"removing server {server_id} from shard {shard}")
-            shard_id_object_mapping[shard].rm_server(server_id)
-            if(len(shard_id_object_mapping[shard].serv_dict)==0):
-
-                # print(f"deleting shard object for {shard}")
-                shard_id_object_mapping.pop(shard)
-                metadata_obj.remove_shard(shard)
+            shard_obj = shard_id_object_mapping[shard]
+            with shard_obj.mutex:
+                shard_id_object_mapping[shard].rm_server(server_id)
+                if(len(shard_id_object_mapping[shard].serv_dict)==0):
+                    # print(f"deleting shard object for {shard}")
+                    shard_id_object_mapping.pop(shard)
+                    metadata_obj.remove_shard(shard)
 
         metadata_obj.remove_server(server_id)
-
         try:
             # print(f"Stopping and removing container of server:{server_id}")
             container = self.server_to_docker_container_map[server_id]
@@ -310,7 +312,7 @@ class Servers:
             pass
         # print("Server" + str(server_id) + " removed")
         self.server_to_docker_container_map.pop(server_id)
-        return shard_list
+        return 1
 
 
 
@@ -340,18 +342,23 @@ def send_request(host='server', port=5000, path='/config',payload={},method='POS
 
 def client_request_sender(shard_id, path, payload, method):
     # print(f"Sending request to shard:{shard_id} with path:{path} and payload:{payload} and method:{method}")
-    rid = random.randrange(99999, 1000000, 1)
     shard_obj = shard_id_object_mapping[shard_id]
-    with shard_obj.mutex:
-        out = shard_obj.client_hash(rid)
-    if out==None:
-        return None
-    # print(f"Sending request to server:{out[0]}")
-    server_name = "server" + str(out[0])
-    response, _ = send_request(server_name, 5000, path, payload, method)
-    with shard_obj.mutex:
-        shard_obj.cont_hash[out[1]][1] = None
-    return response
+    # with shard_obj.mutex:
+    while(1):
+        try:
+            rid = random.randrange(99999, 1000000, 1)
+            out = shard_obj.client_hash(rid)
+            if out==None:
+                return None
+            # print(f"Sending request to server:{out[0]}")
+            server_name = "server" + str(out[0])
+            response, _ = send_request(server_name, 5000, path, payload, method)
+            return response
+        except:
+            continue
+    # with shard_obj.mutex:
+    #     shard_obj.cont_hash[out[1]][1] = None
+    # return response
 
 
 
@@ -382,29 +389,36 @@ def configure_and_setup(server_id, shard_list):
     configure_server(server_id, shard_list)
     for shard in shard_list:
         # print(f"Inside for loop for shard:{shard}")
-        rid = random.randrange(99999, 1000000, 1)
         shard_obj = shard_id_object_mapping[shard]
         with shard_obj.mutex:
-            out = shard_obj.client_hash(rid)
-        if out == None:
-            # print(f"adding server:{server_id} to object of {shard}")
-            shard_id_object_mapping[shard].add_server(server_id)
-            continue
-        serv_id = out[0]
-        server_name = "server" + str(serv_id)
+            if len(shard_obj.serv_dict.keys()) == 0:
+                # print(f"adding server:{server_id} to object of {shard}")
+                shard_id_object_mapping[shard].add_server(server_id)
+                continue
         shard_name = "sh" + str(shard)
-        payload_shard_list = []
-        payload_shard_list.append(shard_name)
-        payload = {
-            "shards": payload_shard_list
-        }
-        # print(f"Copying shard:{shard} to server:{server_id}")
-        response, _ = send_request(server_name, 5000, '/copy', payload, 'GET')
-        with shard_obj.mutex:
-            shard_obj.cont_hash[out[1]][1]=None
+        response = None
+        while(1):
+            try:
+                rid = random.randrange(99999, 1000000, 1)
+                with shard_obj.mutex:
+                    out = shard_obj.client_hash(rid)
+                serv_id = out[0]
+                server_name = "server" + str(serv_id)
+                payload_shard_list = []
+                payload_shard_list.append(shard_name)
+                payload = {
+                    "shards": payload_shard_list
+                }
+                # print(f"Copying shard:{shard} to server:{server_id}")
+                response, _ = send_request(server_name, 5000, '/copy', payload, 'GET')
+                # with shard_obj.mutex:
+                #     shard_obj.cont_hash[out[1]][1]=None
+                # print(f"adding server:{server_id} to object of {shard}")
+                break
+            except:
+                # print(f"Error in copying shard:{shard} to server:{server_id}")
+                continue
         
-        # print(f"adding server:{server_id} to object of {shard}")
-        shard_id_object_mapping[shard].add_server(server_id)
         payload = {
             "shard": shard_name,
             "curr_idx": 0,
@@ -412,7 +426,11 @@ def configure_and_setup(server_id, shard_list):
         }
         server_name = "server" + str(server_id)   
         response, _ = send_request(server_name, 5000, '/write', payload, 'POST')
-        shard_id_object_mapping[shard].serv_dict[server_id][1] = int(response['current_idx']) 
+        cur_valid_idx = metadata_obj.get_valid_idx(shard)
+        response2 = server_updateid(server_id, shard, cur_valid_idx)
+        with shard_obj.mutex:
+            shard_id_object_mapping[shard].add_server(server_id)
+            shard_id_object_mapping[shard].serv_dict[server_id][1] = int(response['current_idx']) 
     return        
     
     
@@ -455,7 +473,9 @@ def send_get_request_with_timeout(host_name='localhost', port=5000, path='/'):
             shard_list = metadata_obj.get_shards(server_id)
             for i in range(len(shard_list)):
                 shard_list[i]=int(shard_list[i][0])
-            servers_obj.remove_server(server_id)
+            status = servers_obj.remove_server(server_id)
+            if status == -1:
+                return
             servers_obj.add_server(server_id, shard_list)
     return
 
@@ -527,10 +547,10 @@ def server_update(shard, Stud_id, sname, smarks, server_id):
         "data": data
     }
     server_name = "server" + str(server_id)   
-    response, _ = send_request(server_name, 5000, '/update', payload, 'PUT')
-    return response
+    response, status = send_request(server_name, 5000, '/update', payload, 'PUT')
+    return response, status
 
-def server_delete(shard, Stud_id, server_id):
+def remove_entry(shard, Stud_id, server_id):
     # print(f"Deleting the student with Stud_id: {Stud_id} from shard:  {shard} in server: {server_id}")
     payload = {
         "shard": shard,
@@ -566,7 +586,7 @@ def generate_random_id():
     return rand_int
 
 
-class SimpleHandlerWithMutex(SimpleHTTPRequestHandler):
+class SimpleHandlerWithMutex(BaseHTTPRequestHandler):
     global servers_obj
     global global_schema
     def do_POST(self):
@@ -614,6 +634,9 @@ class SimpleHandlerWithMutex(SimpleHTTPRequestHandler):
             content_length = int(self.headers['Content-Length'])
             content = self.rfile.read(content_length).decode('utf-8')
             content = json.loads(content)
+            # print(content)
+            # check if content is correct json object or not
+            # print(type(content))
             data = content["data"]
             shard_grp = {}
             for entry in data:
@@ -634,19 +657,29 @@ class SimpleHandlerWithMutex(SimpleHTTPRequestHandler):
             # print("write ke under hu")
             for shard_id, entries_list in shard_grp.items():
                 shard_obj = shard_id_object_mapping[shard_id]
-                with shard_obj.update_mutex:
+                with shard_obj.mutex:
                     # print("Mutex ke under hu")
                     last_idx=0
-                    # print(shard_id,entries_list)
-                    # print(shard_obj.serv_dict.keys())
+                    # # print(shard_id,entries_list)
+                    # # print(shard_obj.serv_d'/writeict.keys())
                     cur_valid_idx = metadata_obj.get_valid_idx(shard_id)
                     for server_id in shard_obj.serv_dict.keys():
-                        response = server_write('sh'+str(shard_id), cur_valid_idx, entries_list, server_id)
-                        shard_obj.serv_dict[server_id][1] = int(response["current_idx"])
-                        last_idx = int(response["current_idx"])
+                        try:
+                            response = server_write('sh'+str(shard_id), cur_valid_idx, entries_list, server_id)
+                            shard_obj.serv_dict[server_id][1] = int(response["current_idx"])
+                            last_idx = int(response["current_idx"])
+                        except:
+                            continue
+                        # response = server_write('sh'+str(shard_id), cur_valid_idx, entries_list, server_id)
+                        # shard_obj.serv_dict[server_id][1] = int(response["current_idx"])
+                        # last_idx = int(response["current_idx"])
                     metadata_obj.update_valid_idx(shard_id, last_idx)
                     for server_id in shard_obj.serv_dict.keys():
-                        response = server_updateid(server_id, shard_id, metadata_obj.get_valid_idx(shard_id))
+                        try:
+                            response = server_updateid(server_id, shard_id, metadata_obj.get_valid_idx(shard_id))
+                        except:
+                            # print(f"Error in updating update_idx on server{server_id}")
+                            continue
             self.send_response(200)
             self.send_header('Content-type', 'application/json')
             self.end_headers()
@@ -687,7 +720,7 @@ class SimpleHandlerWithMutex(SimpleHTTPRequestHandler):
                     return
                 try:
                     shard_id = int(shard_id[2:])
-                    shard_id_object_mapping[shard_id] = Shards()
+                    # shard_id_object_mapping[shard_id] = Shards()
                 except:
                     self.send_response(400)
                     self.send_header('Content-type', 'application/json')
@@ -696,7 +729,14 @@ class SimpleHandlerWithMutex(SimpleHTTPRequestHandler):
                     response_str = json.dumps(server_response)
                     self.wfile.write(response_str.encode('utf-8'))
                     return
+                # metadata_obj.add_shard(shard_id, int(shard["Shard_size"]), int(shard["Stud_id_low"]))
+            
+            for shard in new_shards:
+                shard_id = shard["Shard_id"]
+                shard_id = int(shard_id[2:])
+                shard_id_object_mapping[shard_id] = Shards()
                 metadata_obj.add_shard(shard_id, int(shard["Shard_size"]), int(shard["Stud_id_low"]))
+
 
             serv_id_list = []
             for server_name, shard_list in server_list.items():
@@ -844,13 +884,23 @@ class SimpleHandlerWithMutex(SimpleHTTPRequestHandler):
                 return
             
             shard_obj = shard_id_object_mapping[shard_id]
-            with shard_obj.update_mutex:
+            with shard_obj.mutex:
                 metadata_obj.update_update_idx(shard_id, sid)
                 # print(shard_obj.serv_dict.keys())
                 for server_id in shard_obj.serv_dict.keys():
                     # print(f" Shard_id: {shard_id} Server_id: {server_id}, Stud_id: , {sid},  Stud_name: {sname},  Stud_marks: , {smarks}")
-
-                    response = server_update('sh'+str(shard_id), sid, sname, smarks, server_id)
+                    try:
+                        response, status = server_update('sh'+str(shard_id), sid, sname, smarks, server_id)
+                        if status == 400:
+                            self.send_response(400)
+                            self.send_header('Content-type', 'application/json')
+                            self.end_headers()
+                            server_response = {"message": "<Error> Entry not found", "status": "failure"}
+                            response_str = json.dumps(server_response)
+                            self.wfile.write(response_str.encode('utf-8'))
+                            return
+                    except:
+                        continue
                 metadata_obj.update_update_idx(shard_id, -1)
                     
             self.send_response(200)
@@ -877,11 +927,19 @@ class SimpleHandlerWithMutex(SimpleHTTPRequestHandler):
             num_servs = int(content["n"])
             server_list = content["servers"]
             rm_servs = []
+            if num_servs > len(servers_obj.server_to_docker_container_map):
+                self.send_response(400)
+                self.send_header('Content-type', 'application/json')
+                self.end_headers()
+                server_response = {"message": "<Error> Length of server list is more than removable instances", "status": "failure"}
+                response_str = json.dumps(server_response)
+                self.wfile.write(response_str.encode('utf-8'))
+                return
             if( num_servs < len(server_list) ):
                 self.send_response(400)
                 self.send_header('Content-type', 'application/json')
                 self.end_headers()
-                server_response = {"message": "<Error> Length of hostname list is more than newly added instances", "status": "failure"}
+                server_response = {"message": "<Error> Length of server list is more than removable instances", "status": "failure"}
                 response_str = json.dumps(server_response)
                 self.wfile.write(response_str.encode('utf-8'))
                 return
@@ -889,8 +947,11 @@ class SimpleHandlerWithMutex(SimpleHTTPRequestHandler):
             for server in server_list:
                 server_id = int(server[6:])
                 with servers_obj.mutex:
-                    servers_obj.remove_server(server_id)
-                rm_servs.append(server)
+                    status = servers_obj.remove_server(server_id)
+                if status == -1:
+                    rm_servs.append(server + " not found")
+                else:
+                    rm_servs.append(server)
                 cur += 1
             while cur < num_servs:
                 leng = len(servers_obj.server_to_docker_container_map)
@@ -905,7 +966,7 @@ class SimpleHandlerWithMutex(SimpleHTTPRequestHandler):
             self.send_header('Content-type', 'application/json')
             self.end_headers()
             message={}
-            message['N']=len(rm_servs)
+            message['N']=len(servers_obj.server_to_docker_container_map)
             message['servers']=rm_servs
             server_response = {"message":message, "status": "successful"}
             response_str = json.dumps(server_response)
@@ -931,11 +992,16 @@ class SimpleHandlerWithMutex(SimpleHTTPRequestHandler):
                 self.wfile.write(response_str.encode('utf-8'))
                 return
             shard_obj = shard_id_object_mapping[shard_id]
-            with shard_obj.update_mutex:
+            with shard_obj.mutex:
                 metadata_obj.update_update_idx(shard_id, Stud_id)
                 for server_id in shard_obj.serv_dict.keys():
-                    response, status_code = server_delete('sh'+str(shard_id), Stud_id, server_id)
+                    try:
+                        response, status_code = remove_entry('sh'+str(shard_id), Stud_id, server_id)
+                    except:
+                        continue
+                    # response, status_code = remove_entry('sh'+str(shard_id), Stud_id, server_id)
                 metadata_obj.update_update_idx(shard_id, -1)
+                metadata_obj.update_valid_idx(shard_id, metadata_obj.get_valid_idx(shard_id)-1)
                 
             if status_code != 200:
                 self.send_response(400)

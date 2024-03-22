@@ -22,7 +22,7 @@ def send_post_request_config(host='load_balancer', port=5000, path='/init'):
     headers = {'Content-type': 'application/json'}
     json_payload = json.dumps(payload)
     
-    connection = http.client.HTTPConnection(host, port)
+    connection = http.client.HTTPConnection(host, port,timeout=150)
     connection.request('POST', path, json_payload, headers)
 
     response = connection.getresponse()
