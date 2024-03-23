@@ -12,23 +12,13 @@ import threading
 import copy
 import os
 import mysql.connector
+import mysql.connector.pooling
 
 
 global global_schema
 num_retries = 3
 client = docker.from_env()
 shard_id_object_mapping = {}
-thread_local = threading.local()
-
-def get_database_connection():
-    if not hasattr(thread_local, "connection"):
-        thread_local.connection = mysql.connector.connect(
-            host="lb_database",  # Container name of MySQL
-            user="root",
-            password="password",
-            database="your_database"
-        )
-    return thread_local.connection
 
 
 # connection = mysql.connector.connect(
@@ -38,14 +28,54 @@ def get_database_connection():
 #     database="Metadata"
 # )
 
-connection = get_database_connection()
-cursor = connection.cursor()
+# connection = mysql.connector.connect(
+#     host="lb_database",  # Container name of MySQL
+#     user="root",
+#     password="password"
+# )
+
+
+# Create a connection pool
+connection_pool = mysql.connector.pooling.MySQLConnectionPool(
+    pool_name="mypool",
+    pool_size=32,
+    host="lb_database",
+    user="root",
+    password="password"
+)
+
+import subprocess
+
+def execute_mysql_query(query):
+    # Command to execute MySQL query using the mysql client
+    command = f"mysql -h lb_database -u root -ppassword -e \"{query}\""
+
+    # Execute the command and capture the output
+    process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    output, error = process.communicate()
+
+    return output.decode('utf-8')
+
+    # # Check if the command executed successfully
+    # if process.returncode == 0:
+    #     # Process the output...
+    #     print(output.decode('utf-8'))
+    # else:
+    #     # Handle error...
+    #     print("Error:", error.decode('utf-8'))
+
+
+
+
+# cursor = connection.cursor()
 
 
 
 
 class Metadata:
     def __init__(self):
+        connection = connection_pool.get_connection()
+        cursor = connection.cursor()
         cursor.execute("CREATE DATABASE IF NOT EXISTS Metadata")
         cursor.execute("USE Metadata")
 
@@ -60,87 +90,149 @@ class Metadata:
         # print(create_table_query)
         cursor.execute(create_table_query)
         connection.commit()
+        cursor.close()
+        connection.close()
 
     def add_shard(self, shard_id, shard_size,shard_id_low):
+        connection = connection_pool.get_connection()
+        cursor = connection.cursor()
+        cursor.execute("USE Metadata")
         # print(f"Inside add_shard function. adding {shard_id} info to ShardT")
         insert_query = f"INSERT INTO ShardT (Stud_id_low, Shard_id, Shard_size, Valid_idx, Update_idx) VALUES ({shard_id_low}, {shard_id}, {shard_size}, 0, -1);"
         cursor.execute(insert_query)
         connection.commit()    
+        cursor.close()
+        connection.close()
 
     def remove_shard(self, shard_id):
+        connection = connection_pool.get_connection()
+        cursor = connection.cursor()
+        cursor.execute("USE Metadata")
         # print(f"Removing shard:{shard_id} from ShardT")
         delete_query = f"DELETE FROM ShardT WHERE Shard_id = {shard_id};"
         cursor.execute(delete_query)
         connection.commit()
+        cursor.close()
+        connection.close()
     
     def add_server(self, server_id, shard_list):
+        connection = connection_pool.get_connection()
+        cursor = connection.cursor()
+        cursor.execute("USE Metadata")
         # print(f"adding server:{server_id} having shard_list: {shard_list} in MapT")
         for shard in shard_list:
             insert_query = f"INSERT INTO MapT (Shard_id, Server_id) VALUES ({shard}, {server_id});"
             cursor.execute(insert_query)
         connection.commit()
+        cursor.close()
+        connection.close()
 
     def remove_server(self, server_id):
+        connection = connection_pool.get_connection()
+        cursor = connection.cursor()
+        cursor.execute("USE Metadata")
         # print(f"Removing server:{server_id} from MapT")
         delete_query = f"DELETE FROM MapT WHERE Server_id = {server_id};"
         cursor.execute(delete_query)
         connection.commit()
+        cursor.close()
+        connection.close()
 
     def get_shards(self, server_id):
+        connection = connection_pool.get_connection()
+        cursor = connection.cursor()
+        cursor.execute("USE Metadata")
         # print(f"Getting shards for server:{server_id}")
         select_query = f"SELECT Shard_id FROM MapT WHERE Server_id = {server_id};"
         cursor.execute(select_query)
         shard_list = cursor.fetchall()
+        cursor.close()
+        connection.close()
         return shard_list
 
     def get_all_shards(self):
+        connection = connection_pool.get_connection()
+        cursor = connection.cursor()
+        cursor.execute("USE Metadata")
         # print(f"Getting all shards")
         select_query = f"SELECT Stud_id_low, Shard_id, Shard_size FROM ShardT;"
         cursor.execute(select_query)
         shard_list = cursor.fetchall()
+        cursor.close()
+        connection.close()
         return shard_list
     
     def get_shard_id(self, stud_id):
+        connection = connection_pool.get_connection()
+        cursor = connection.cursor()
+        cursor.execute("USE Metadata")
         # print(f"Getting shard_id for stud_id:{stud_id}")
         select_query = f"SELECT Shard_id FROM ShardT WHERE Stud_id_low <= {stud_id} AND Stud_id_low + Shard_size > {stud_id};"
         cursor.execute(select_query)
         shard_id = cursor.fetchall()
+        cursor.close()
+        connection.close()
         if len(shard_id) == 0:
             return None
         return shard_id[0][0]
     
     def get_server_id(self, shard_id):
+        connection = connection_pool.get_connection()
+        cursor = connection.cursor()
+        cursor.execute("USE Metadata")
         # print(f"Getting server_id for shard_id:{shard_id}")
         select_query = f"SELECT Server_id FROM MapT WHERE Shard_id = {shard_id};"
         cursor.execute(select_query)
         server_ids = cursor.fetchall()
+        cursor.close()
+        connection.close()
         return server_ids
     
     def get_valid_idx(self, shard_id):
+        connection = connection_pool.get_connection()
+        cursor = connection.cursor()
+        cursor.execute("USE Metadata")
         # print(f"Getting valid_idx for shard_id:{shard_id}")
         select_query = f"SELECT Valid_idx FROM ShardT WHERE Shard_id = {shard_id};"
         cursor.execute(select_query)
         valid_idx = cursor.fetchall()
+        cursor.close()
+        connection.close()
         return valid_idx[0][0]
     
     def get_update_idx(self, shard_id):
+        connection = connection_pool.get_connection()
+        cursor = connection.cursor()
+        cursor.execute("USE Metadata")
         # print(f"Getting update_idx for shard_id:{shard_id}")
         select_query = f"SELECT Update_idx FROM ShardT WHERE Shard_id = {shard_id};"
         cursor.execute(select_query)
         update_idx = cursor.fetchall()
+        cursor.close()
+        connection.close()
         return update_idx[0][0]
     
     def update_valid_idx(self, shard_id, valid_idx):
+        connection = connection_pool.get_connection()
+        cursor = connection.cursor()
+        cursor.execute("USE Metadata")
         # print(f"Updating valid_idx for shard_id:{shard_id} to {valid_idx}")
         update_query = f"UPDATE ShardT SET Valid_idx = {valid_idx} WHERE Shard_id = {shard_id};"
         cursor.execute(update_query)
         connection.commit()
+        cursor.close()
+        connection.close()
 
     def update_update_idx(self, shard_id, update_idx):
+        connection = connection_pool.get_connection()
+        cursor = connection.cursor()
+        cursor.execute("USE Metadata")
         # print(f"Updating update_idx for shard_id:{shard_id} to {update_idx}")
         update_query = f"UPDATE ShardT SET Update_idx = {update_idx} WHERE Shard_id = {shard_id};"
         cursor.execute(update_query)
         connection.commit()
+        cursor.close()
+        connection.close()
 
 
 
@@ -693,6 +785,107 @@ class SimpleHandlerWithMutex(BaseHTTPRequestHandler):
             response_str = json.dumps(server_response)
             self.wfile.write(response_str.encode('utf-8'))
             return
+        
+
+        elif(self.path == '/read'):
+            # print("In read endpoint")
+            content_length = int(self.headers['Content-Length'])
+            content = self.rfile.read(content_length).decode('utf-8')
+            content = json.loads(content)
+            low=content["low"]
+            high=content["high"]
+            response_payload={}
+            response_payload['shards_queried']=[]
+            response_payload['data']=[]
+            connection = connection_pool.get_connection()
+            cursor = connection.cursor()
+            cursor.execute("USE Metadata")
+            #check if the update_index is not in this range
+            query=f"SELECT Shard_id FROM ShardT WHERE Update_idx>={low} AND Update_idx<={high};"
+            cursor.execute(query)
+            res=cursor.fetchall()
+            if len(res)>0:
+                self.send_response(400)
+                self.send_header('Content-type', 'application/json')
+                self.end_headers()
+                server_response = {"message": "<Error> Update_Index mein load hai ", "status": "failure"}
+                response_str = json.dumps(server_response)
+                self.wfile.write(response_str.encode('utf-8'))
+                cursor.close()
+                connection.close()
+                return
+            
+            # now select whichever shards is in the range and then query them, also select their low and sizes too
+            query=f"SELECT Shard_id,Stud_id_low,Shard_size FROM ShardT WHERE Stud_id_low<={high} AND Stud_id_low+Shard_size>={low};"
+            cursor.execute(query)
+            res=cursor.fetchall()
+            cursor.close()
+            connection.close()
+            for shard in res:
+                # print(shard)
+                shard_id=shard[0]
+                sh_low=shard[1]
+                size=shard[2]
+                payload={}
+                payload['shard']='sh'+str(shard_id)
+                payload['Stud_id']={}
+                payload['Stud_id']['low']=max(low,sh_low)
+                payload['Stud_id']['high']=min(high,sh_low+size)
+                response=client_request_sender(shard_id, '/read',payload,'POST')
+                if response==None:
+                    continue
+                response_payload['shards_queried'].append('sh'+str(shard))
+                for entries in response['data']:
+                    response_payload['data'].append(entries)
+
+
+            # for shard in shard_id_object_mapping.keys():
+            #     select_query = f"SELECT Stud_id_low,Shard_size,Update_idx FROM ShardT WHERE Shard_id = {shard};"
+            #     # connection = connection_pool.get_connection()
+            #     # cursor = connection.cursor()
+            #     # cursor.execute("USE Metadata")
+
+            #     # cursor.execute(select_query)
+            #     tp=execute_mysql_query(select_query)
+            #     # cursor.close()
+            #     # connection.close()
+            #     sh_low=tp[0][0]
+            #     size=tp[0][1]
+            #     up_index=tp[0][2]
+            #     sh_low=int(sh_low)
+            #     size=int(size)
+            #     up_index=int(up_index)
+            #     if low >= sh_low+size or high < sh_low:
+            #         continue
+            #     elif up_index >=low and up_index<=high:
+            #         self.send_response(400)
+            #         self.send_header('Content-type', 'application/json')
+            #         self.end_headers()
+            #         server_response = {"message": "<Error> Up_Index mein load hai ", "status": "failure"}
+            #         response_str = json.dumps(server_response)
+            #         self.wfile.write(response_str.encode('utf-8'))
+            #         return
+
+            #     else:
+            #         payload={}
+            #         payload['shard']='sh'+str(shard)
+            #         payload['Stud_id']={}
+            #         payload['Stud_id']['low']=max(low,sh_low)
+            #         payload['Stud_id']['high']=min(high,sh_low+size)
+            #         response=client_request_sender(shard, '/read',payload,'POST')
+            #         if response==None:
+            #             continue
+            #         response_payload['shards_queried'].append('sh'+str(shard))
+            #         for entries in response['data']:
+            #             response_payload['data'].append(entries)
+
+            response_payload['status']='success'
+            self.send_response(200)
+            self.send_header('Content-type', 'application/json')
+            self.end_headers()
+            response_str = json.dumps(response_payload)
+            self.wfile.write(response_str.encode('utf-8'))
+            return
     
 
 
@@ -773,58 +966,6 @@ class SimpleHandlerWithMutex(BaseHTTPRequestHandler):
             response_str = json.dumps(server_response)
             self.wfile.write(response_str.encode('utf-8'))
             return
-
-        elif(self.path == '/read'):
-            # print("In read endpoint")
-            content_length = int(self.headers['Content-Length'])
-            content = self.rfile.read(content_length).decode('utf-8')
-            content = json.loads(content)
-            low=content["low"]
-            high=content["high"]
-            response_payload={}
-            response_payload['shards_queried']=[]
-            response_payload['data']=[]
-            for shard in shard_id_object_mapping.keys():
-                select_query = f"SELECT Stud_id_low,Shard_size,Update_idx FROM ShardT WHERE Shard_id = {shard};"
-                cursor.execute(select_query)
-                tp=cursor.fetchall()
-                sh_low=tp[0][0]
-                size=tp[0][1]
-                up_index=tp[0][2]
-                sh_low=int(sh_low)
-                size=int(size)
-                up_index=int(up_index)
-                if low >= sh_low+size or high < sh_low:
-                    continue
-                elif up_index >=low and up_index<=high:
-                    self.send_response(400)
-                    self.send_header('Content-type', 'application/json')
-                    self.end_headers()
-                    server_response = {"message": "<Error> Up_Index mein load hai ", "status": "failure"}
-                    response_str = json.dumps(server_response)
-                    self.wfile.write(response_str.encode('utf-8'))
-                    return
-
-                else:
-                    payload={}
-                    payload['shard']='sh'+str(shard)
-                    payload['Stud_id']={}
-                    payload['Stud_id']['low']=max(low,sh_low)
-                    payload['Stud_id']['high']=min(high,sh_low+size)
-                    response=client_request_sender(shard, '/read',payload,'POST')
-                    if response==None:
-                        continue
-                    response_payload['shards_queried'].append('sh'+str(shard))
-                    for entries in response['data']:
-                        response_payload['data'].append(entries)
-
-            response_payload['status']='success'
-            self.send_response(200)
-            self.send_header('Content-type', 'application/json')
-            self.end_headers()
-            response_str = json.dumps(response_payload)
-            self.wfile.write(response_str.encode('utf-8'))
-            return
         
 
     def do_GET(self):
@@ -858,6 +999,8 @@ class SimpleHandlerWithMutex(BaseHTTPRequestHandler):
             response_str = json.dumps(payload)
             self.wfile.write(response_str.encode('utf-8'))
             return
+        
+        
         
         
 

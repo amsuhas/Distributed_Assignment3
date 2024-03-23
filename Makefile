@@ -35,13 +35,13 @@ read_server_logs:
 	xdg-open $(sname)_logs
 
 rm_server_containers:
-	docker rm server0 server1 server2 server3 server4 server5 server6 --force
+	docker rm server0 server1 server2 server3 server4 server5 server6 server7 server8 server9 server10 --force
 
 rm_lb_containers:
 	docker rm load_balancer lb_database --force
 
 rm_all_containers:
-	docker rm load_balancer lb_database server0 server1 server2 server3 server4 server5 server6 --force
+	docker rm load_balancer lb_database server0 server1 server2 server3 server4 server5 server6 server7 server8 server9 server10 --force
 
 dummy_image:
 	docker build -f Dockerfile_dummy -t dummy_image .

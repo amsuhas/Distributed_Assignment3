@@ -60,7 +60,8 @@ async def send_post_request_read_async(low, high, host='load_balancer', port=500
     
     async with aiohttp.ClientSession() as session:
         async with session.post(f'http://{host}:{port}{path}', json=payload, headers=headers) as response:
-            print(await response.text())
+            await response.text()
+            # pass
 
 
 async def send_read_requests(num_requests=10000):
@@ -86,7 +87,7 @@ async def send_post_request_write_async(index=0,host='load_balancer', port=5000,
     
     async with aiohttp.ClientSession() as session:
         async with session.post(f'http://{host}:{port}{path}', json=payload, headers=headers) as response:
-            print(await response.text())
+            await response.text()
 
 
 
@@ -94,7 +95,7 @@ async def send_write_requests(num_requests=10000):
     tasks = []
     for _ in range(num_requests):
         r_int = random.randint(0, 16000)
-        print(r_int)
+        # print(r_int)
         tasks.append(send_post_request_write_async(r_int))
     await asyncio.gather(*tasks)
 
@@ -106,19 +107,38 @@ async def send_write_requests(num_requests=10000):
 
 
 async def main():
-    num_requests = 2
 
-    # Send write requests
-    start_time = time.time()
-    await send_write_requests(num_requests)
-    write_time = time.time() - start_time
-    print(f"{num_requests} Write requests took {write_time} seconds")
+    for i in range(0,300):
+        print(i)
+        num_requests = 32
 
-    # Send read requests
-    start_time = time.time()
-    await send_read_requests(num_requests)
-    read_time = time.time() - start_time
-    print(f"{num_requests} Read requests took {read_time} seconds")
+        # Send write requests
+        start_time = time.time()
+        while(1):
+            try:
+                await send_write_requests(num_requests)
+                break
+            except:
+                print("Error")
+        # await send_write_requests(num_requests)
+        write_time = time.time() - start_time
+        print(f"{num_requests} Write requests took {write_time} seconds")
+
+    for i in range(0,300):
+        print(i)
+        num_requests = 32
+        # Send read requests
+        start_time = time.time()
+        while(1):
+            try:
+                await send_read_requests(num_requests)
+                break
+            except:
+                print("Error")
+        # await send_read_requests(num_requests)
+        read_time = time.time() - start_time
+        print(f"{num_requests} Read requests took {read_time} seconds")
+        # time.sleep(5)
 
 
 
