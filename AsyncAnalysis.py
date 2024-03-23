@@ -66,8 +66,8 @@ async def send_post_request_read_async(low, high, host='load_balancer', port=500
 async def send_read_requests(num_requests=10000):
     tasks = []
     for _ in range(num_requests):
-        low = random.randint(0, 160)
-        high = random.randint(low, 160)
+        low = random.randint(0, 16000)
+        high = random.randint(low, 16000)
         tasks.append(send_post_request_read_async(low, high))
     await asyncio.gather(*tasks)
 
@@ -93,7 +93,9 @@ async def send_post_request_write_async(index=0,host='load_balancer', port=5000,
 async def send_write_requests(num_requests=10000):
     tasks = []
     for _ in range(num_requests):
-        tasks.append(send_post_request_write_async(random.randint(0, 160)))
+        r_int = random.randint(0, 16000)
+        print(r_int)
+        tasks.append(send_post_request_write_async(r_int))
     await asyncio.gather(*tasks)
 
 
@@ -104,7 +106,7 @@ async def send_write_requests(num_requests=10000):
 
 
 async def main():
-    num_requests = 10
+    num_requests = 2
 
     # Send write requests
     start_time = time.time()
