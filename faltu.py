@@ -103,26 +103,27 @@ if __name__ == '__main__':
     shards_count = 4
     shards_replicas = 7
     shards_size = 4096
-    num_requests = 10000
+    num_requests = 1000
 
 
     
 
-    send_post_request_config()
+    # send_post_request_config()
 
     s1 = time.time()
 
     for i in range(0, num_requests):
-        send_post_request_write(random.randint(0, shards_count*shards_size - 1))
-        if i % 100 == 0:
-            print(f"W: {i} and time {time.time()-s1}")
+        random.randint(0, shards_count*shards_size - 1)
+        # if i % 100 == 0:
+        #     print(f"W: {i} and time {time.time()-s1}")
 
 
     s2 = time.time()
 
     for i in range(0, num_requests):
         low = random.randint(0, shards_count*shards_size - 1)
-        high = min(low+100, shards_count*shards_size - 1)
+        high = random.randint(low, shards_count*shards_size - 1)
+
         send_post_request_read(low, high)
         if i % 100 == 0:
             print(f"R: {i} and time {time.time()-s2}")
