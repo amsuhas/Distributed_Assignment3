@@ -128,7 +128,8 @@ Number of Shards: 4
 Number of Servers: 6
 Number of replicas: 2
 
-[Analysis1 Timing](AlalysisTimings/Analysis1.txt)
+![Analysis1 Timing](AlalysisTimings/Analysis1.png)
+
 
 
 ## A2 
@@ -136,21 +137,17 @@ Number of Shards: 4
 Number of Servers: 7
 Number of replicas: 7
 
-[Analysis2 Timing](AlalysisTimings/Analysis2.txt)
+![Analysis2 Timing](AlalysisTimings/Analysis2.png)
 
 
 
-<!-- ### Standard Deviation (for N=2-6, Load balancer Original Hash)
-![Standard Deviation Graph](Analysis-plots/original-load-balancer/line_chart_dev.png)
-
-The standard deviation plot is a decreasing graph as its expected to be. There is a steep drop from n=2 to n=3 showcasing how the distribution and load distribution becomes better with increase in number of servers. We can also see the graph reaching a saturation point towards N=6 suggesting that there would be a specific number of servers at which the deviation change in the number of requests allocated to the servers becomes nearly constant. -->
 
 ## A3 
 Number of Shards: 6
 Number of Servers: 10
 Number of replicas: 8
 
-[Analysis3 Timing](AlalysisTimings/Analysis3.txt)
+![Analysis3 Timing](AlalysisTimings/Analysis3.png)
 
 
 ## A4
@@ -158,32 +155,11 @@ Number of replicas: 8
 Made a separate python script which can be executed as follows:
 * Run the client container (if not currently running)
 (NOTE: If client container is not in interactive mode, do "docker exec -it client bash" )
-* Run the tester_client code (by executing "python3 tester_client.py")
+* Run the Analysis4 code (by executing "python3 tester_client.py")
 * Observe the output on various test cases
 
-Below are the results of a test run of the above mentioned script. 
-![Testing Endpoints](Analysis-plots/testing_enpoints.png)
-
-Below is the case where one of the servers fail and load balancer spawns a new server in its place during the hearbeat call for this server.
-![Server Failure](Analysis-plots/server_failure.png)
 
 
-## A4 (Modified Hash Function)
-### Bar Graph
-![Bar Graph](Analysis-plots/modified-load-balancer/bar.png)
 
-### Average (for N=2-6)
-![Average Graph](Analysis-plots/modified-load-balancer/line_chart_avg.png)
-
-### Standard Deviation (for N=2-6)
-![Standard Deviation Graph](Analysis-plots/modified-load-balancer/line_chart_dev.png)
-
-The above diagrams show that the modified hash function works better in allocating the servers to the clients as compared to the original one. This can be seen from the equitable distribution between the 3 servers in the bar graph. The lower standard deviations proves that the modified hash function works better to distribute the requests.
 
 These design choices and assumptions are made to ensure the efficiency, reliability, and responsiveness of the server management system. Contributors and users are encouraged to provide feedback and suggestions for further improvements.
-
-
-
-
-# mysql -e "Use Metadata; Drop table MapT; Drop table ShardT;" 
-# mysql -e "Use Student_info; Drop table sh1; Drop table sh2;" 

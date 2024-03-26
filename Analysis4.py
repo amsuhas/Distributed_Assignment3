@@ -83,7 +83,7 @@ def send_get_request_copy(host='load_balancer', port=5000, path='/copy'):
     print()
     connection.close()
 
-def send_post_request_read(low, high, host='load_balancer', port=5000, path='/read'):
+def send_post_request_read(low=0, high=100, host='load_balancer', port=5000, path='/read'):
     print("/read")
     payload = {
         "low":low,

@@ -114,25 +114,26 @@ async def send_read_requests(num_requests=10000):
 
 
 
-async def send_post_request_write_async(session, index=0, host='load_balancer', port=5000, path='/write'):
+async def send_post_request_write_async(sem, session, index=0, host='load_balancer', port=5000, path='/write'):
     payload = {
         "data": [
             {"Stud_id": str(index), "Stud_name": "GHI"+str(index), "Stud_marks": "27"}
         ]
     }
     headers = {'Content-type': 'application/json'}
-    
-    async with session.post(f'http://{host}:{port}{path}', json=payload, headers=headers) as response:
-        response_text = await response.text()
-        # print(response_text)
-        return response_text
+    async with sem:
+        async with session.post(f'http://{host}:{port}{path}', json=payload, headers=headers) as response:
+            response_text = await response.text()
+            # print(response_text)
+            return response_text
 
 async def send_write_requests(num_requests=10000):
+    sem = asyncio.Semaphore(1000)
     async with aiohttp.ClientSession() as session:
         tasks = []
         for _ in range(num_requests):
             r_int = random.randint(0, 16000)
-            task = send_post_request_write_async(session, r_int)
+            task = send_post_request_write_async(sem, session, r_int)
             tasks.append(task)
         await asyncio.gather(*tasks)
 
@@ -141,14 +142,15 @@ async def send_write_requests(num_requests=10000):
 
 async def main():
 
-    num_requests = 32
-    num_iterations = 300
+    num_requests = 1000
+    num_iterations = 1
     start_time = time.time()
     for i in range(0,num_iterations):
         print(i)
         await send_write_requests(num_requests)
         write_time = time.time() - start_time
         print(f"{num_requests} Write requests took {write_time} seconds")
+        time.sleep(1)
     
     write_time = time.time() - start_time
 
@@ -158,7 +160,7 @@ async def main():
         await send_read_requests(num_requests)
         read_time = time.time() - start_time
         print(f"{num_requests} Read requests took {read_time} seconds")
-        # time.sleep(5)
+        time.sleep(1)
     
     read_time = time.time() - start_time
     print(f"Total time taken: {read_time} seconds")

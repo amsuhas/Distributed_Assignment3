@@ -21,13 +21,13 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
     def do_GET(self):
 
         if(self.path == '/heartbeat'):
-            # # print("Received heartbeat request\n")
+            print("Received heartbeat request\n")
             self.send_response(200)
             self.send_header('Content-type', 'application/json')
             self.end_headers()
             return
         elif self.path == '/copy':
-            # # print("Received copy request\n")
+            print("Received copy request\n")
             content_length = int(self.headers['Content-Length'])
             post_data = self.rfile.read(content_length)
             payload = json.loads(post_data)
@@ -59,13 +59,13 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
             self.send_header('Content-type', 'application/json')
             self.end_headers()
             response_data["status"] = "success"
-            # print(response_data)
+            print(response_data)
             self.wfile.write(json.dumps(response_data).encode('utf-8'))
             return
     
     def do_POST(self):
         if self.path == '/config':
-            # print("Received config request\n")
+            print("Received config request\n")
             content_length = int(self.headers['Content-Length'])
             post_data = self.rfile.read(content_length)
             payload = json.loads(post_data)
@@ -81,10 +81,10 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                 update_idx_dict[shard] = 0
                 table_name = shard
                 columns = ', '.join([f"{col} {dict[dtype]}" for col, dtype in zip(schema['columns'], schema['dtypes'])])
-                # print(columns)
+                print(columns)
                 create_table_query = f"CREATE TABLE {table_name} ({columns});"
 
-                # print(create_table_query)
+                print(create_table_query)
                 cursor.execute(create_table_query)
                 connection.commit()
                 tables_created += (f"{server_id}:{table_name}, ")
@@ -102,7 +102,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
             return
         
         elif self.path == '/read':
-            # print("Received read request\n")
+            print("Received read request\n")
             content_length = int(self.headers['Content-Length'])
             post_data = self.rfile.read(content_length)
             payload = json.loads(post_data)
@@ -143,7 +143,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
             return
         
         elif self.path == '/write':
-            # print("Received write request\n")
+            print("Received write request\n")
             content_length = int(self.headers['Content-Length'])
             post_data = self.rfile.read(content_length)
             payload = json.loads(post_data)
@@ -155,7 +155,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
             
             
             for stud in studs_data:
-                # print(stud)
+                print(stud)
                 sid = int(stud.get('Stud_id'))
                 sname = '\"' + stud.get('Stud_name') + '\"'
                 smarks = '\"' + stud.get('Stud_marks') + '\"'
@@ -184,7 +184,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
             return
         
         elif self.path == '/updateid':
-            # print("Received update index request\n")
+            print("Received update index request\n")
             content_length = int(self.headers['Content-Length'])
             post_data = self.rfile.read(content_length)
             payload = json.loads(post_data)
@@ -204,7 +204,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
         
     def do_PUT(self):
         if self.path == '/update':
-            # print("Received update request\n")
+            print("Received update request\n")
             content_length = int(self.headers['Content-Length'])
             put_data = self.rfile.read(content_length)
             payload = json.loads(put_data)
@@ -242,7 +242,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
         
     def do_DELETE(self):
         if self.path == '/del':
-            # print("Received delete request\n")
+            print("Received delete request\n")
             content_length = int(self.headers['Content-Length'])
             delete_data = self.rfile.read(content_length)
             payload = json.loads(delete_data)
@@ -289,7 +289,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
 def run(server_class=HTTPServer, handler_class=SimpleHTTPRequestHandler, port=5000):
     server_address = ('', port)
     httpd = server_class(server_address, handler_class)
-    # print(f'Starting server on port {port}...')
+    print(f'Starting server on port {port}...')
     httpd.serve_forever()
 
 if __name__ == '__main__':
