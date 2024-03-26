@@ -128,7 +128,7 @@ Number of Shards: 4
 Number of Servers: 6
 Number of replicas: 2
 
-![Analysis1 Timing](AlalysisTimings/Analysis1.png)
+![Analysis1 Timing](AnalysisTimings/Analysis1.png)
 
 
 
@@ -137,7 +137,7 @@ Number of Shards: 4
 Number of Servers: 7
 Number of replicas: 7
 
-![Analysis2 Timing](AlalysisTimings/Analysis2.png)
+![Analysis2 Timing](AnalysisTimings/Analysis2.png)
 
 
 
@@ -147,7 +147,7 @@ Number of Shards: 6
 Number of Servers: 10
 Number of replicas: 8
 
-![Analysis3 Timing](AlalysisTimings/Analysis3.png)
+![Analysis3 Timing](AnalysisTimings/Analysis3.png)
 
 
 ## A4
