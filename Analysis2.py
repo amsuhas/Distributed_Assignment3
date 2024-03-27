@@ -56,7 +56,7 @@ def send_post_request_read(low, high, host='load_balancer', port=5000, path='/re
     connection.request('POST', path, json_payload, headers)
 
     response = connection.getresponse()
-    print(f'Status: {response.status}')
+    # print(f'Status: {response.status}')
     # print('Response:')
     # # response_data = decode(encode(response_data, 'latin-1', 'backslashreplace'), 'unicode-escape')
     # response_data = response.read().decode('utf-8')
@@ -82,7 +82,7 @@ def send_post_request_write(index=0,host='load_balancer', port=5000, path='/writ
     connection.request('POST', path, json_payload, headers)
 
     response = connection.getresponse()
-    print(f'Status: {response.status}')
+    # print(f'Status: {response.status}')
     
     connection.close()
 
