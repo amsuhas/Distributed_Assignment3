@@ -246,9 +246,9 @@ if __name__ == '__main__':
     send_post_request_write(16)
     send_post_request_write(100)
 
-    send_post_request_read()
+    send_post_request_read(3,15)
     send_put_request_update(4)
-    send_post_request_read()
+    send_post_request_read(2,200)
 
     send_post_request_add()
     send_del_request_rm()

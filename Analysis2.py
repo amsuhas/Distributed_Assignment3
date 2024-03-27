@@ -83,11 +83,7 @@ def send_post_request_write(index=0,host='load_balancer', port=5000, path='/writ
 
     response = connection.getresponse()
     print(f'Status: {response.status}')
-    # print('Response:')
-    # response_data = response.read().decode('utf-8')
-    # json_response = json.loads(response_data)
-    # print(json.dumps(json_response, indent=4))
-    # print()
+    
     connection.close()
 
 

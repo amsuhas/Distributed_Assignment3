@@ -17,4 +17,4 @@ RUN apt-get install -y nano
 
 # Run load_balancer.py when the container launches 
 # CMD ["bash", "-c", "chmod +x initializer_script_lb; ./initializer_script_lb;"]
-CMD ["bash", "-c", "python3 drs.py"]
+CMD ["bash", "-c", "python3 drs.py > lb_logs"]

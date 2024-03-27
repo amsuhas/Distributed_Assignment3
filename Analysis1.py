@@ -110,7 +110,7 @@ if __name__ == '__main__':
 
     for i in range(0, 10000):
         low = random.randint(0, 16000)
-        high = random.randint(low, 16000)
+        high = low + 100
         send_post_request_read(low, high)
         if i % 100 == 0:
             print(f"R: {i} and time {time.time()-s2}")
