@@ -50,11 +50,6 @@ def send_post_request_config(host='load_balancer', port=5000, path='/init'):
 
 
 
-
-
-
-
-
 # async read function
 async def send_post_request_read_async(low, high, host='load_balancer', port=5000, path='/read'):
     payload = {
@@ -84,33 +79,33 @@ async def send_read_requests(num_requests=10000):
 
 
 
-# # async write function
-# async def send_post_request_write_async(index=0,host='load_balancer', port=5000, path='/write'):
-#     payload = {
-#         "data": [
-#             {"Stud_id": str(index), "Stud_name": "GHI"+str(index), "Stud_marks": "27"}
-#         ]
-#     }
-#     headers = {'Content-type': 'application/json'}
-#     # json_payload = json.dumps(payload)
+# # # async write function
+# # async def send_post_request_write_async(index=0,host='load_balancer', port=5000, path='/write'):
+# #     payload = {
+# #         "data": [
+# #             {"Stud_id": str(index), "Stud_name": "GHI"+str(index), "Stud_marks": "27"}
+# #         ]
+# #     }
+# #     headers = {'Content-type': 'application/json'}
+# #     # json_payload = json.dumps(payload)
     
-#     async with aiohttp.ClientSession() as session:
-#         async with session.post(f'http://{host}:{port}{path}', json=payload, headers=headers) as response:
-#             response_text = await response.text()
-#             print(response_text)
+# #     async with aiohttp.ClientSession() as session:
+# #         async with session.post(f'http://{host}:{port}{path}', json=payload, headers=headers) as response:
+# #             response_text = await response.text()
+# #             print(response_text)
 
-#             return response_text
+# #             return response_text
 
 
 
-# async def send_write_requests(num_requests=10000):
-#     tasks = []
-#     for _ in range(num_requests):
-#         r_int = random.randint(0, 16000)
-#         # print(r_int)
-#         response_text=send_post_request_write_async(r_int)
-#         tasks.append(response_text)
-#     await asyncio.gather(*tasks)
+# # async def send_write_requests(num_requests=10000):
+# #     tasks = []
+# #     for _ in range(num_requests):
+# #         r_int = random.randint(0, 16000)
+# #         # print(r_int)
+# #         response_text=send_post_request_write_async(r_int)
+# #         tasks.append(response_text)
+# #     await asyncio.gather(*tasks)
 
 
 
@@ -143,7 +138,7 @@ async def send_write_requests(num_requests=10000):
 async def main():
 
     num_requests = 1000
-    num_iterations = 1
+    num_iterations = 10
     start_time = time.time()
     for i in range(0,num_iterations):
         print(i)
@@ -153,12 +148,14 @@ async def main():
         time.sleep(1)
     
     write_time = time.time() - start_time
+    num_requests=500
+    num_iterations = 20
 
     for i in range(0,num_iterations):
         print(i)
         # start_time = time.time()
         await send_read_requests(num_requests)
-        read_time = time.time() - start_time
+        read_time = time.time() - start_time-write_time
         print(f"{num_requests} Read requests took {read_time} seconds")
         time.sleep(1)
     

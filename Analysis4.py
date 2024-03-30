@@ -236,8 +236,6 @@ def send_post_request_add(host='load_balancer', port=5000, path='/add'):
 if __name__ == '__main__':
     send_post_request_config()
     send_get_request_status()
-    # send_get_request_heartbeat()
-    # send_get_request_copy()
     send_post_request_write(4)
     send_post_request_write(2)
     send_post_request_write(10)
@@ -246,18 +244,16 @@ if __name__ == '__main__':
     send_post_request_write(16)
     send_post_request_write(100)
 
-    send_post_request_read(3,15)
+    send_post_request_read(0,200)
     send_put_request_update(4)
-    send_post_request_read(2,200)
+    send_post_request_read(0,200)
 
     send_post_request_add()
     send_del_request_rm()
 
 
-    # send_get_request_copy()
     send_post_request_read()
     send_delete_request_del(2)
     send_post_request_read()
-    # send_get_request_copy()
 
 
