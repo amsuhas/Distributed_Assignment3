@@ -14,7 +14,7 @@ random.seed(42)
 def send_post_request_config(host='load_balancer', port=5000, path='/init'):
     print("/init")
     payload = {
-        "N":6,
+        "N":10,
         "schema":{
             "columns":["Stud_id","Stud_name","Stud_marks"],
             "dtypes":["Number","String","String"]
@@ -23,15 +23,21 @@ def send_post_request_config(host='load_balancer', port=5000, path='/init'):
             {"Stud_id_low":0, "Shard_id": "sh1", "Shard_size":4096},
             {"Stud_id_low":4096, "Shard_id": "sh2", "Shard_size":4096},
             {"Stud_id_low":8192, "Shard_id": "sh3", "Shard_size":4096},
-            {"Stud_id_low":12288, "Shard_id": "sh4", "Shard_size":4096}
+            {"Stud_id_low":12288, "Shard_id": "sh4", "Shard_size":4096},
+            {"Stud_id_low":16384, "Shard_id": "sh5", "Shard_size":4096},
+            {"Stud_id_low":20480, "Shard_id": "sh6", "Shard_size":4096}
         ],
         "servers":{
-            "Server0":["sh1","sh2"],
-            "Server1":["sh3","sh4"],
-            "Server3":["sh1","sh3"],
-            "Server4":["sh4","sh2"],
-            "Server5":["sh1","sh4"],
-            "Server6":["sh3","sh2"]
+            "Server0":["sh1","sh2", "sh3", "sh4", "sh5"],
+            "Server1":["sh2","sh3", "sh4", "sh5", "sh6"],
+            "Server2":["sh1","sh3", "sh4", "sh5", "sh6"],
+            "Server3":["sh1","sh2", "sh4", "sh5", "sh6"],
+            "Server4":["sh1","sh2", "sh3", "sh5", "sh6"],
+            "Server5":["sh1","sh2", "sh3", "sh4", "sh6"],
+            "Server6":["sh1","sh2", "sh3", "sh4", "sh5"],
+            "Server7":["sh6","sh2", "sh3", "sh4", "sh5"],
+            "Server8":["sh1","sh6", "sh4", "sh5"],
+            "Server9":["sh1","sh2", "sh3", "sh6"]
         }
     }
     headers = {'Content-type': 'application/json'}
@@ -78,37 +84,6 @@ async def send_read_requests(num_requests=10000):
 
 
 
-
-# # # async write function
-# # async def send_post_request_write_async(index=0,host='load_balancer', port=5000, path='/write'):
-# #     payload = {
-# #         "data": [
-# #             {"Stud_id": str(index), "Stud_name": "GHI"+str(index), "Stud_marks": "27"}
-# #         ]
-# #     }
-# #     headers = {'Content-type': 'application/json'}
-# #     # json_payload = json.dumps(payload)
-    
-# #     async with aiohttp.ClientSession() as session:
-# #         async with session.post(f'http://{host}:{port}{path}', json=payload, headers=headers) as response:
-# #             response_text = await response.text()
-# #             print(response_text)
-
-# #             return response_text
-
-
-
-# # async def send_write_requests(num_requests=10000):
-# #     tasks = []
-# #     for _ in range(num_requests):
-# #         r_int = random.randint(0, 16000)
-# #         # print(r_int)
-# #         response_text=send_post_request_write_async(r_int)
-# #         tasks.append(response_text)
-# #     await asyncio.gather(*tasks)
-
-
-
 async def send_post_request_write_async(sem, session, index=0, host='load_balancer', port=5000, path='/write'):
     payload = {
         "data": [
@@ -137,22 +112,22 @@ async def send_write_requests(num_requests=10000):
 
 async def main():
 
-    num_requests = 1000
-    num_iterations = 10
+    num_requests = 500
+    num_iterations = 20
     start_time = time.time()
     for i in range(0,num_iterations):
-        print(i)
+        # print(i)
         await send_write_requests(num_requests)
         write_time = time.time() - start_time
         print(f"{num_requests} Write requests took {write_time} seconds")
         time.sleep(1)
     
     write_time = time.time() - start_time
-    num_requests=500
-    num_iterations = 20
 
+    num_requests = 250
+    num_iterations = 40
     for i in range(0,num_iterations):
-        print(i)
+        # print(i)
         # start_time = time.time()
         await send_read_requests(num_requests)
         read_time = time.time() - start_time-write_time
@@ -171,34 +146,11 @@ async def main():
 
 
 
-
-
-
 if __name__ == '__main__':
 
     send_post_request_config()
     time.sleep(10)
     asyncio.run(main())
-    # s1 = time.time()
-
-    # for i in range(0, 10000):
-    #     send_post_request_write_async(random.randint(0, 16000))
-    #     if i % 100 == 0:
-    #         print(f"W: {i} and time {time.time()-s1}")
-
-    # s2 = time.time()
-
-    # for i in range(0, 10000):
-    #     low = random.randint(0, 16000)
-    #     high = random.randint(low, 16000)
-    #     send_post_request_read_async(low, high)
-    #     if i % 100 == 0:
-    #         print(f"R: {i} and time {time.time()-s2}")
-
-    # s3 = time.time()
-
-    # print("Write time: ", s2-s1)
-    # print("Read time: ", s3-s2)
 
 
 
