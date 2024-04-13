@@ -83,7 +83,7 @@ def configure_and_setup(server_id, shard_list):
         }
         server_name = "server" + str(server_id)   
         response = send_request(server_name, 5000, '/write', payload, 'POST')
-        shard_id_object_mapping[shard].serv_dict[server_id][1] = int(response['current_idx']) 
+        shard_id_object_mapping[shard].serv_dict[server_id][1] = int(response['current_idx'])
     return        
     
     

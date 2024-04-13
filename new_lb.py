@@ -67,12 +67,12 @@ class Metadata:
 
         # print("Creating tables")
         table_name = "ShardT"
-        create_table_query = f"CREATE TABLE {table_name} ( Stud_id_low INT, Shard_id INT, Shard_size INT, Valid_idx INT, Update_idx INT);"
+        create_table_query = f"CREATE TABLE {table_name} ( Stud_id_low INT, Shard_id INT, Shard_size INT);"
         # print(create_table_query)
         cursor.execute(create_table_query)
 
         table_name = "MapT"
-        create_table_query = f"CREATE TABLE {table_name} ( Shard_id INT, Server_id INT);"
+        create_table_query = f"CREATE TABLE {table_name} ( Shard_id INT, Server_id INT, Primary BOOL);"
         # print(create_table_query)
         cursor.execute(create_table_query)
         connection.commit()
@@ -84,7 +84,7 @@ class Metadata:
         # cursor = connection.cursor()
         cursor.execute("USE Metadata")
         # print(f"Inside add_shard function. adding {shard_id} info to ShardT")
-        insert_query = f"INSERT INTO ShardT (Stud_id_low, Shard_id, Shard_size, Valid_idx, Update_idx) VALUES ({shard_id_low}, {shard_id}, {shard_size}, 0, -1);"
+        insert_query = f"INSERT INTO ShardT (Stud_id_low, Shard_id, Shard_size) VALUES ({shard_id_low}, {shard_id}, {shard_size});"
         cursor.execute(insert_query)
         connection.commit()    
         # cursor.close()
@@ -107,7 +107,7 @@ class Metadata:
         cursor.execute("USE Metadata")
         # print(f"adding server:{server_id} having shard_list: {shard_list} in MapT")
         for shard in shard_list:
-            insert_query = f"INSERT INTO MapT (Shard_id, Server_id) VALUES ({shard}, {server_id});"
+            insert_query = f"INSERT INTO MapT (Shard_id, Server_id, Primary) VALUES ({shard}, {server_id}, FALSE);"
             cursor.execute(insert_query)
         connection.commit()
         # cursor.close()
@@ -174,53 +174,86 @@ class Metadata:
         # connection.close()
         return server_ids
     
-    def get_valid_idx(self, shard_id):
+    # def get_valid_idx(self, shard_id):
+    #     # connection = connection_pool.get_connection()
+    #     # cursor = connection.cursor()
+    #     cursor.execute("USE Metadata")
+    #     # print(f"Getting valid_idx for shard_id:{shard_id}")
+    #     select_query = f"SELECT Valid_idx FROM ShardT WHERE Shard_id = {shard_id};"
+    #     cursor.execute(select_query)
+    #     valid_idx = cursor.fetchall()
+    #     # cursor.close()
+    #     # connection.close()
+    #     return valid_idx[0][0]
+    
+    # def get_update_idx(self, shard_id):
+    #     # connection = connection_pool.get_connection()
+    #     # cursor = connection.cursor()
+    #     cursor.execute("USE Metadata")
+    #     # print(f"Getting update_idx for shard_id:{shard_id}")
+    #     select_query = f"SELECT Update_idx FROM ShardT WHERE Shard_id = {shard_id};"
+    #     cursor.execute(select_query)
+    #     update_idx = cursor.fetchall()
+    #     # cursor.close()
+    #     # connection.close()
+    #     return update_idx[0][0]
+    
+    # def update_valid_idx(self, shard_id, valid_idx):
+    #     # connection = connection_pool.get_connection()
+    #     # cursor = connection.cursor()
+    #     cursor.execute("USE Metadata")
+    #     # print(f"Updating valid_idx for shard_id:{shard_id} to {valid_idx}")
+    #     update_query = f"UPDATE ShardT SET Valid_idx = {valid_idx} WHERE Shard_id = {shard_id};"
+    #     cursor.execute(update_query)
+    #     connection.commit()
+    #     # cursor.close()
+    #     # connection.close()
+
+    # def update_update_idx(self, shard_id, update_idx):
+    #     # connection = connection_pool.get_connection()
+    #     # cursor = connection.cursor()
+    #     cursor.execute("USE Metadata")
+    #     # print(f"Updating update_idx for shard_id:{shard_id} to {update_idx}")
+    #     update_query = f"UPDATE ShardT SET Update_idx = {update_idx} WHERE Shard_id = {shard_id};"
+    #     cursor.execute(update_query)
+    #     connection.commit()
+    #     # cursor.close()
+    #     # connection.close()
+
+    def get_primary_server(self, shard_id):
         # connection = connection_pool.get_connection()
         # cursor = connection.cursor()
         cursor.execute("USE Metadata")
-        # print(f"Getting valid_idx for shard_id:{shard_id}")
-        select_query = f"SELECT Valid_idx FROM ShardT WHERE Shard_id = {shard_id};"
+        print(f"Getting primary server for shard_id:{shard_id}")
+        select_query = f"SELECT Server_id FROM MapT WHERE Shard_id = {shard_id} AND Primary = TRUE;"
         cursor.execute(select_query)
-        valid_idx = cursor.fetchall()
+        server_id = cursor.fetchone()[0]
         # cursor.close()
         # connection.close()
-        return valid_idx[0][0]
+        return server_id
     
-    def get_update_idx(self, shard_id):
+    def set_primary_server(self, shard_id, server_id):
         # connection = connection_pool.get_connection()
         # cursor = connection.cursor()
         cursor.execute("USE Metadata")
-        # print(f"Getting update_idx for shard_id:{shard_id}")
-        select_query = f"SELECT Update_idx FROM ShardT WHERE Shard_id = {shard_id};"
-        cursor.execute(select_query)
-        update_idx = cursor.fetchall()
-        # cursor.close()
-        # connection.close()
-        return update_idx[0][0]
-    
-    def update_valid_idx(self, shard_id, valid_idx):
-        # connection = connection_pool.get_connection()
-        # cursor = connection.cursor()
-        cursor.execute("USE Metadata")
-        # print(f"Updating valid_idx for shard_id:{shard_id} to {valid_idx}")
-        update_query = f"UPDATE ShardT SET Valid_idx = {valid_idx} WHERE Shard_id = {shard_id};"
+        print(f"Setting primary server for shard_id:{shard_id} to server_id:{server_id}")
+        update_query = f"UPDATE MapT SET Primary = TRUE WHERE Shard_id = {shard_id} AND Server_id = {server_id};"
         cursor.execute(update_query)
         connection.commit()
         # cursor.close()
         # connection.close()
-
-    def update_update_idx(self, shard_id, update_idx):
+        
+    def get_shards_primary(self, server_id):
         # connection = connection_pool.get_connection()
         # cursor = connection.cursor()
         cursor.execute("USE Metadata")
-        # print(f"Updating update_idx for shard_id:{shard_id} to {update_idx}")
-        update_query = f"UPDATE ShardT SET Update_idx = {update_idx} WHERE Shard_id = {shard_id};"
-        cursor.execute(update_query)
-        connection.commit()
+        print(f"Getting primary shards for server_id:{server_id}")
+        select_query = f"SELECT Shard_id FROM MapT WHERE Server_id = {server_id} AND Primary = TRUE;"
+        cursor.execute(select_query)
+        shard_ids = cursor.fetchall()
         # cursor.close()
         # connection.close()
-
-
+        return shard_ids
 
 
 
@@ -300,7 +333,7 @@ class Shards:
     def rm_server(self,host_name):
         # print(f"Removing server {host_name}")
 
-        indexes=self.serv_dict[host_name][0]
+        indexes=self.serv_dict[host_name]
         # print(f"Indexes are {indexes} and the server is {host_name}")
         # with self.mutex:
         # print(f"Inside mutex for removing server {host_name}")
@@ -319,7 +352,7 @@ class Shards:
         
         serv_listid = self.get_hash(serv_id)
 
-        self.serv_dict[serv_id] = [serv_listid,0]
+        self.serv_dict[serv_id] = serv_listid
         # print(f"Added server {serv_id} with indexes {serv_listid}")
         return
 
@@ -360,6 +393,9 @@ class Servers:
             # print(self.server_to_docker_container_map.keys())
             return -1
         global metadata_obj
+        primary_shards = metadata_obj.get_shards_primary(server_id)
+        
+        
         shard_list = metadata_obj.get_shards(server_id)
         for i in range(len(shard_list)):
             shard_list[i]=int(shard_list[i][0])
@@ -386,6 +422,8 @@ class Servers:
             pass
         # print("Server" + str(server_id) + " removed")
         self.server_to_docker_container_map.pop(server_id)
+        if(len(primary_shards)!=0):
+            response, status = shm_primary_elect(primary_shards)
         return 1
 
 
@@ -495,16 +533,16 @@ def configure_and_setup(server_id, shard_list):
         
         payload = {
             "shard": shard_name,
-            "curr_idx": 0,
+            # "curr_idx": 0,
             "data": response['sh'+str(shard)]
         }
         server_name = "server" + str(server_id)   
         response, _ = send_request(server_name, 5000, '/write', payload, 'POST')
-        cur_valid_idx = metadata_obj.get_valid_idx(shard)
-        response2 = server_updateid(server_id, shard, cur_valid_idx)
+        # cur_valid_idx = metadata_obj.get_valid_idx(shard)
+        # response2 = server_updateid(server_id, shard, cur_valid_idx)
         with shard_obj.mutex:
             shard_id_object_mapping[shard].add_server(server_id)
-            shard_id_object_mapping[shard].serv_dict[server_id][1] = int(response['current_idx']) 
+            # shard_id_object_mapping[shard].serv_dict[server_id][1] = int(response['current_idx']) 
     return        
     
     
@@ -598,11 +636,11 @@ def server_read(shard, Stud_id_low, Stud_id_high, server_id):
     response, _ = send_request(server_name, 5000, '/read', payload, 'POST')
     return response
 
-def server_write(shard, curr_idx, data, server_id):
+def server_write(shard, data, server_id):
     # print(f"Writing to shard: {shard} in server: {server_id} with curr_idx: {curr_idx} and data: {data}")
     payload = {
         "shard": shard,
-        "curr_idx": curr_idx,
+        # "curr_idx": curr_idx,
         "data": data
     }
     server_name = "server" + str(server_id) 
@@ -634,16 +672,13 @@ def remove_entry(shard, Stud_id, server_id):
     response, status_code = send_request(server_name, 5000, '/del', payload, 'DELETE')
     return response, status_code 
 
-def server_updateid(server_id, shard_id, update_idx):
-    # print(f"Updating update_idx in shard: {shard_id}  in server: {server_id}  to {update_idx}")
-    shard = "sh" + str(shard_id)
+def shm_primary_elect(shard_list):
     payload = {
-        "shard": shard,
-        "update_idx": update_idx
+        "shards": shard_list
     }
-    server_name = "server" + str(server_id)   
-    response, _ = send_request(server_name, 5000, '/updateid', payload, 'POST')
-    return response
+    response, status_code = send_request('shard_manager', 5000, '/primary_elect', payload, 'POST')
+    return response, status_code
+    
 
 
 
@@ -729,31 +764,46 @@ class Post_handler:
             shard_grp[shard_id].append(entry)
         # print(shard_grp)
         # # print("write ke under hu")
+        # for shard_id, entries_list in shard_grp.items():
+        #     shard_obj = shard_id_object_mapping[shard_id]
+        #     with shard_obj.mutex:
+        #         # # print("Mutex ke under hu")
+        #         last_idx=0
+        #         cur_valid_idx = metadata_obj.get_valid_idx(shard_id)
+        #         for server_id in shard_obj.serv_dict.keys():
+        #             try:
+        #                 response = server_write('sh'+str(shard_id), cur_valid_idx, entries_list, server_id)
+        #                 shard_obj.serv_dict[server_id][1] = int(response["current_idx"])
+        #                 last_idx = int(response["current_idx"])
+        #             except:
+        #                 continue
+        #         metadata_obj.update_valid_idx(shard_id, last_idx)
+        #         for server_id in shard_obj.serv_dict.keys():
+        #             try:
+        #                 response = server_updateid(server_id, shard_id, metadata_obj.get_valid_idx(shard_id))
+        #             except:
+        #                 # print(f"Error in updating update_idx on server{server_id}")
+        #                 continue
+                    
+        # server_response = {"message": f"{len(data)} entries added", "status": "success"} 
+        # return web.json_response(server_response, status=200)
+        
+        
         for shard_id, entries_list in shard_grp.items():
             shard_obj = shard_id_object_mapping[shard_id]
             with shard_obj.mutex:
-                # # print("Mutex ke under hu")
-                last_idx=0
-                cur_valid_idx = metadata_obj.get_valid_idx(shard_id)
-                for server_id in shard_obj.serv_dict.keys():
-                    try:
-                        response = server_write('sh'+str(shard_id), cur_valid_idx, entries_list, server_id)
-                        shard_obj.serv_dict[server_id][1] = int(response["current_idx"])
-                        last_idx = int(response["current_idx"])
-                    except:
-                        continue
-                metadata_obj.update_valid_idx(shard_id, last_idx)
-                for server_id in shard_obj.serv_dict.keys():
-                    try:
-                        response = server_updateid(server_id, shard_id, metadata_obj.get_valid_idx(shard_id))
-                    except:
-                        # print(f"Error in updating update_idx on server{server_id}")
-                        continue
-                    
+                print("Mutex ke under hu")
+                primary_server_id = metadata_obj.get_primary_server(shard_id)
+                try:
+                    response = server_write('sh'+str(shard_id), metadata_obj.get_valid_idx(shard_id), entries_list, primary_server_id)
+                    if(response["status"] != "success"):
+                        server_response = {"message": "<Error> Write failed", "status": "failure"}
+                        return web.json_response(server_response, status=400)
+                except:
+                    server_response = {"message": "<Error> Write failed", "status": "failure"}
+                    return web.json_response(server_response, status=400)
         server_response = {"message": f"{len(data)} entries added", "status": "success"} 
         return web.json_response(server_response, status=200)
-
-
 
 
 
@@ -888,17 +938,28 @@ class Put_handler:
         
         shard_obj = shard_id_object_mapping[shard_id]
 
-        with shard_obj.mutex:
-            metadata_obj.update_update_idx(shard_id, sid)
-            for server_id in shard_obj.serv_dict.keys():
-                try:
-                    response, status = await server_update('sh'+str(shard_id), sid, sname, smarks, server_id)
-                    if status == 400:
-                        return web.json_response({"message": "<Error> Entry not found", "status": "failure"}, status=400)
-                except:
-                    continue
-            metadata_obj.update_update_idx(shard_id, -1)
+        # with shard_obj.mutex:
+        #     metadata_obj.update_update_idx(shard_id, sid)
+        #     for server_id in shard_obj.serv_dict.keys():
+        #         try:
+        #             response, status = await server_update('sh'+str(shard_id), sid, sname, smarks, server_id)
+        #             if status == 400:
+        #                 return web.json_response({"message": "<Error> Entry not found", "status": "failure"}, status=400)
+        #         except:
+        #             continue
+        #     metadata_obj.update_update_idx(shard_id, -1)
                 
+        # return web.json_response({"message": f"Data entry for Stud_id: {Stud_id} updated", "status": "success"}, status=200)
+        
+        with shard_obj.mutex:
+            primary_server_id = metadata_obj.get_primary_server(shard_id)
+            try:
+                response, status = await server_update('sh'+str(shard_id), sid, sname, smarks, primary_server_id)
+                if(status != 200):
+                    return web.json_response(response, status)
+            except:
+                return web.json_response({"message": "<Error> Update failed", "status": "failure"}, status=400)
+
         return web.json_response({"message": f"Data entry for Stud_id: {Stud_id} updated", "status": "success"}, status=200)
 
 
@@ -923,6 +984,8 @@ class Get_handler:
             temp_dict['Stud_id_low'] = i_shard_info[0]
             temp_dict['Shard_id'] = "sh" + str(i_shard_info[1])
             temp_dict['Shard_size'] = i_shard_info[2]
+            primary_server_id = metadata_obj.get_primary_server(i_shard_info[1])
+            temp_dict['primary_server'] = "Server" + str(primary_server_id)
             out_list.append(temp_dict)
 
         payload['shards'] = out_list
@@ -996,19 +1059,28 @@ class Delete_handler:
 
         
         shard_obj = shard_id_object_mapping[shard_id]
+        # with shard_obj.mutex:
+        #     metadata_obj.update_update_idx(shard_id, Stud_id)
+        #     for server_id in shard_obj.serv_dict.keys():
+        #         try:
+        #             response, status_code = await remove_entry('sh'+str(shard_id), Stud_id, server_id)
+        #             if status_code != 200:
+        #                 return web.json_response({"message": "<Error> Entry not found", "status": "failure"}, status=400)
+        #         except:
+        #             continue
+            
+        #     metadata_obj.update_update_idx(shard_id, -1)
+        #     metadata_obj.update_valid_idx(shard_id, metadata_obj.get_valid_idx(shard_id)-1)
+            
+            
         with shard_obj.mutex:
-            metadata_obj.update_update_idx(shard_id, Stud_id)
-            for server_id in shard_obj.serv_dict.keys():
-                try:
-                    response, status_code = await remove_entry('sh'+str(shard_id), Stud_id, server_id)
-                    if status_code != 200:
-                        return web.json_response({"message": "<Error> Entry not found", "status": "failure"}, status=400)
-                except:
-                    continue
-            
-            metadata_obj.update_update_idx(shard_id, -1)
-            metadata_obj.update_valid_idx(shard_id, metadata_obj.get_valid_idx(shard_id)-1)
-            
+            primary_server_id = metadata_obj.get_primary_server(shard_id)
+            try:
+                response, status_code = await remove_entry('sh'+str(shard_id), Stud_id, primary_server_id)
+                if status_code != 200:
+                    return web.json_response(response, status_code)
+            except:
+                return web.json_response({"message": "<Error> Delete failed", "status": "failure"}, status=400)
         
         return web.json_response({"message": "Entry deleted", "status": "success"}, status=200)
 
