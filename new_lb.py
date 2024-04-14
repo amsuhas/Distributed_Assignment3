@@ -873,8 +873,12 @@ class Post_handler:
             return web.json_response({"message": "<Error> Database not initialized", "status": "failure"}, status=400)
         # print("In add endpoint")
         data = await request.json()
+        shard_manager_data={}
+
         num_servers = int(data["n"])
+        shard_manager_data["n"]=num_servers
         new_shards = data["new_shards"]
+        shard_manager_data["new_shards"]=new_shards
         server_list = data["servers"]
 
         if num_servers != len(server_list):
@@ -906,6 +910,15 @@ class Post_handler:
             with servers_obj.mutex:
                 servers_obj.add_server(server_id, shard_list)
             serv_id_list.append(server_id)
+        
+        # call shard manager and send the data to it
+        for shards in data["shards"]:
+            shards = shards["Shard_id"]
+        for old_serv_name, new_serv_id in zip(data["servers"].keys(), serv_id_list):
+            new_serv_name = "Server" + str(new_serv_id)
+            if old_serv_name != new_serv_name:
+                old_serv_name = new_serv_name
+        response,status = send_request('shard_manager', 5000, '/add_server', data, 'POST')
 
         serv_id_list = [f"Server:{serv_id}" for serv_id in serv_id_list]
         return web.json_response({"N": len(servers_obj.server_to_docker_container_map), "message": f"Added Server: {serv_id_list}", "status": "success"}, status=200)
@@ -1039,6 +1052,10 @@ class Delete_handler:
             'N': len(servers_obj.server_to_docker_container_map),
             'servers': rm_servs
         }
+        shm_payload = data
+        data["servers"] = rm_servs
+        
+        response, status = send_request('shard_manager', 5000, '/remove_server', shm_payload, 'POST')
 
         return web.json_response({"message": message, "status": "successful"}, status=200)
         

@@ -27,11 +27,11 @@ connection_metadata = mysql.connector.pooling.MySQLConnectionPool(
 
 # cursor = connection.cursor()
 # update_idx_dict = {}
-primary_shards = []
+# primary_shards = []
 log_shards = {}
 log_count_shards = {}
 logs_file = open("logs.txt", "w")
-  
+is_primary_dict = {}
 
 class Metadata:
     def __init__(self):
@@ -222,9 +222,9 @@ def send_request(host='server', port=5000, path='/config',payload={},method='POS
         
 def manage_request_non_primary(shard, payload, endpoint, method):
     decision = "commit" 
-    if shard in primary_shards:
+    if is_primary_dict[shard][0] == 1:
         # log_shards[shard] = f"writing data in {shard}: \n{studs_data}"
-        server_ids = metadata_obj.get_server_id(shard)
+        server_ids = is_primary_dict[shard][1]
         total_servers = len(server_ids)
         success_count = 1
         for server_id in server_ids:
@@ -364,6 +364,7 @@ class Post_handler:
             cursor[shard] = connection[shard].cursor()
             
             log_count_shards[shard] = 0
+            is_primary_dict[shard] = (0, [])
             
             # update_idx_dict[shard] = 0
             # table_name = shard
@@ -580,10 +581,11 @@ class Put_handler:
         print("Received set primary request\n")
         payload = await request.json()
         
-        shards = payload.get('shard')
-        for shard in shards:
-            primary_shards.append(shard)
-            
+        shard = payload.get('shard')
+        secondary_servers = payload.get('secondary_servers')
+        # for shard in shards:
+            # primary_shards.append(shard)
+        is_primary_dict[shard] = (1, secondary_servers)
         response_json = {
             "message": 'Primary shards set',
             "status": "success"

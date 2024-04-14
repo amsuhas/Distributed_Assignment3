@@ -30,46 +30,22 @@ cursor = connection.cursor()
 
 class Metadata:
     def __init__(self):
-        # connection = connection_pool.get_connection()
-        # cursor = connection.cursor()
         cursor.execute("CREATE DATABASE IF NOT EXISTS Metadata")
         cursor.execute("USE Metadata")
 
-        # print("Creating tables")
-        # table_name = "ShardT"
-        # create_table_query = f"CREATE TABLE {table_name} ( Stud_id_low INT, Shard_id INT, Shard_size INT);"
-        # print(create_table_query)
-        # cursor.execute(create_table_query)
-
-        # table_name = "MapT"
-        # create_table_query = f"CREATE TABLE {table_name} ( Shard_id INT, Server_id INT, Primary BOOL);"
-        # print(create_table_query)
-        # cursor.execute(create_table_query)
-        # connection.commit()
-        # cursor.close()
-        # connection.close()
-
     def add_shard(self, shard_id, shard_size,shard_id_low):
-        # connection = connection_pool.get_connection()
-        # cursor = connection.cursor()
         cursor.execute("USE Metadata")
         # print(f"Inside add_shard function. adding {shard_id} info to ShardT")
         insert_query = f"INSERT INTO ShardT (Stud_id_low, Shard_id, Shard_size) VALUES ({shard_id_low}, {shard_id}, {shard_size});"
         cursor.execute(insert_query)
-        connection.commit()    
-        # cursor.close()
-        # connection.close()
+        connection.commit() 
 
     def remove_shard(self, shard_id):
-        # connection = connection_pool.get_connection()
-        # cursor = connection.cursor()
         cursor.execute("USE Metadata")
         # print(f"Removing shard:{shard_id} from ShardT")
         delete_query = f"DELETE FROM ShardT WHERE Shard_id = {shard_id};"
         cursor.execute(delete_query)
         connection.commit()
-        # cursor.close()
-        # connection.close()
     
     def add_server(self, server_id, shard_list):
         # connection = connection_pool.get_connection()
@@ -121,77 +97,23 @@ class Metadata:
         return shard_list
     
     def get_shard_id(self, stud_id):
-        # connection = connection_pool.get_connection()
-        # cursor = connection.cursor()
         cursor.execute("USE Metadata")
         # print(f"Getting shard_id for stud_id:{stud_id}")
         select_query = f"SELECT Shard_id FROM ShardT WHERE Stud_id_low <= {stud_id} AND Stud_id_low + Shard_size > {stud_id};"
         cursor.execute(select_query)
         shard_id = cursor.fetchall()
-        # cursor.close()
-        # connection.close()
         if len(shard_id) == 0:
             return None
         return shard_id[0][0]
     
     def get_server_id(self, shard_id):
-        # connection = connection_pool.get_connection()
-        # cursor = connection.cursor()
         cursor.execute("USE Metadata")
         # print(f"Getting server_id for shard_id:{shard_id}")
         select_query = f"SELECT Server_id FROM MapT WHERE Shard_id = {shard_id};"
         cursor.execute(select_query)
         server_ids = cursor.fetchall()
-        # cursor.close()
-        # connection.close()
         return server_ids
     
-    # def get_valid_idx(self, shard_id):
-    #     # connection = connection_pool.get_connection()
-    #     # cursor = connection.cursor()
-    #     cursor.execute("USE Metadata")
-    #     # print(f"Getting valid_idx for shard_id:{shard_id}")
-    #     select_query = f"SELECT Valid_idx FROM ShardT WHERE Shard_id = {shard_id};"
-    #     cursor.execute(select_query)
-    #     valid_idx = cursor.fetchall()
-    #     # cursor.close()
-    #     # connection.close()
-    #     return valid_idx[0][0]
-    
-    # def get_update_idx(self, shard_id):
-    #     # connection = connection_pool.get_connection()
-    #     # cursor = connection.cursor()
-    #     cursor.execute("USE Metadata")
-    #     # print(f"Getting update_idx for shard_id:{shard_id}")
-    #     select_query = f"SELECT Update_idx FROM ShardT WHERE Shard_id = {shard_id};"
-    #     cursor.execute(select_query)
-    #     update_idx = cursor.fetchall()
-    #     # cursor.close()
-    #     # connection.close()
-    #     return update_idx[0][0]
-    
-    # def update_valid_idx(self, shard_id, valid_idx):
-    #     # connection = connection_pool.get_connection()
-    #     # cursor = connection.cursor()
-    #     cursor.execute("USE Metadata")
-    #     # print(f"Updating valid_idx for shard_id:{shard_id} to {valid_idx}")
-    #     update_query = f"UPDATE ShardT SET Valid_idx = {valid_idx} WHERE Shard_id = {shard_id};"
-    #     cursor.execute(update_query)
-    #     connection.commit()
-    #     # cursor.close()
-    #     # connection.close()
-
-    # def update_update_idx(self, shard_id, update_idx):
-    #     # connection = connection_pool.get_connection()
-    #     # cursor = connection.cursor()
-    #     cursor.execute("USE Metadata")
-    #     # print(f"Updating update_idx for shard_id:{shard_id} to {update_idx}")
-    #     update_query = f"UPDATE ShardT SET Update_idx = {update_idx} WHERE Shard_id = {shard_id};"
-    #     cursor.execute(update_query)
-    #     connection.commit()
-    #     # cursor.close()
-    #     # connection.close()
-
     def get_primary_server(self, shard_id):
         # connection = connection_pool.get_connection()
         # cursor = connection.cursor()
@@ -216,15 +138,13 @@ class Metadata:
         # connection.close()
         
     def get_all_servers(self):
-        # connection = connection_pool.get_connection()
-        # cursor = connection.cursor()
         cursor.execute("USE Metadata")
         # print(f"Getting all servers")
         select_query = f"SELECT DISTINCT Server_id FROM MapT;"
         cursor.execute(select_query)
         server_ids = cursor.fetchall()
-        # cursor.close()
-        # connection.close()
+        for i in range(len(server_ids)):
+            server_ids[i] = server_ids[i][0]
         return server_ids
     
     def get_server_ids(self, shards):
@@ -234,13 +154,23 @@ class Metadata:
             for server_id in server_ids:
                 servers.add(server_id)
         return servers
-        
+    
+    def get_secondary_servers(self, shard, primary_server):
+        cursor.execute("USE Metadata")
+        select_query = f"SELECT Server_id FROM MapT WHERE Shard_id = {shard} AND Server_id != {primary_server};"
+        cursor.execute(select_query)
+        secondary_servers = cursor.fetchall()
+        for i in range(len(secondary_servers)):
+            secondary_servers[i] = secondary_servers[i][0]
+        return secondary_servers
+    
         
 
 
 
 
 metadata_obj=Metadata()
+
 
 
 
@@ -263,67 +193,13 @@ def send_request(host='server', port=5000, path='/config',payload={},method='POS
     # print(json_response)
     return json_response, response.status
 
-def server_log_count(shards, server_id):
-    server_name = "server" + str(server_id)
-    payload = {
-        "shards": shards
-    }
-    response, status = send_request(server_name, 5000, '/log_count', payload, 'GET')
-    return response, status
 
-def server_set_primary(shard, server_id):
-    server_name = "server" + str(server_id)
-    payload = {
-        "shard": shard
-    }
-    response, status = send_request(server_name, 5000, '/set_primary', payload, 'PUT')
-    return response, status
-       
 
-class Post_Handler:
-    async def primary_handler(self, request):
-        print("Primary handler")
-        content = await request.json()
 
-        shards = content['shards']
-        best_primary_server = {}
-        for shard in shards:
-            best_primary_server[shard] = (-1, -1)
-        server_ids = Metadata.get_server_ids(shards)
-        
-        for server_id in server_ids:
-            try:
-                response, status = await server_log_count(shards, server_id)
-            except:
-                continue
-            
-            if(status != 200):
-                continue
-            response_log_count = response['log_count']
-            for shard in response_log_count.keys():
-                count = response_log_count[shard]
-                if(count > best_primary_server[shard][1]):
-                    best_primary_server[shard] = (server_id, count)      
-        
-        for shard in shards:
-            if(best_primary_server[shard][0] == -1):
-                continue
-                # return web.json_response({"message": "<Error> No server available for atleast a shard", "status": "failure"}, status = 400)
-            
-            set_primary_query = f"UPDATE MapT SET Primary = TRUE WHERE Shard_id = {shard} AND Server_id = {best_primary_server[shard][0]};"
-            cursor.execute(set_primary_query)
-            connection.commit()
-            try:
-                response, status = server_set_primary(shard, best_primary_server[shard][0])
-            except:
-                continue
-            
-        return web.json_response({"message": "Primary server set successfully", "status": "success"}, status = 200)
 
-handle_post = Post_Handler()
 
-app = web.Application()
-app.router.add_post('/primary_elect', handle_post.primary_handler)
+
+
 
 
 
@@ -392,19 +268,127 @@ def send_get_request_with_timeout(host_name='localhost', port=5000, path='/'):
         send_post_request_add('load_balancer', 5000, '/add', shard_list, host_name)
     return
 
-
 def thread_heartbeat():
     # global servers_obj
     # print("Heartbeat thread started")
     global metadata_obj
     while(1):
         # with servers_obj.mutex:
-        host_list = []
-        for server_id in metadata_obj.get_all_servers():
-            host_list.append("server" + str(server_id))
-    for host_name in host_list:
-        send_get_request_with_timeout(host_name, 5000, '/heartbeat')
-    time.sleep(5)
+        host_list = metadata_obj.get_all_servers()
+        # for server_id in host_list:
+        #     host_list.append("server" + str(server_id))
+        for host_name in host_list:
+            host_name = "server" + str(host_name)
+            send_get_request_with_timeout(host_name, 5000, '/heartbeat')
+        time.sleep(120)
+
+
+
+
+
+
+
+
+
+
+
+def server_log_count(shards, server_id):
+    server_name = "server" + str(server_id)
+    payload = {
+        "shards": shards
+    }
+    response, status = send_request(server_name, 5000, '/log_count', payload, 'GET')
+    return response, status
+
+def server_set_primary(shard, server_id, secondary_servers):
+    server_name = "server" + str(server_id)
+    payload = {
+        "shard": shard,
+        "secondary": secondary_servers
+    }
+    response, status = send_request(server_name, 5000, '/set_primary', payload, 'PUT')
+    return response, status
+
+def primary_elect(content):
+    print("Primary handler")
+    # content = await request.json()
+
+    shards = content['shards']
+    best_primary_server = {}
+    for shard in shards:
+        best_primary_server[shard] = (-1, -1)
+    server_ids = Metadata.get_server_ids(shards)
+    
+    for server_id in server_ids:
+        try:
+            response, status = server_log_count(shards, server_id)
+        except:
+            continue
+        
+        if(status != 200):
+            continue
+        response_log_count = response['log_count']
+        for shard in response_log_count.keys():
+            count = response_log_count[shard]
+            if(count > best_primary_server[shard][1]):
+                best_primary_server[shard] = (server_id, count)      
+    
+    for shard in shards:
+        if(best_primary_server[shard][0] == -1):
+            continue
+            # return web.json_response({"message": "<Error> No server available for atleast a shard", "status": "failure"}, status = 400)
+        
+        set_primary_query = f"UPDATE MapT SET Primary = TRUE WHERE Shard_id = {shard} AND Server_id = {best_primary_server[shard][0]};"
+        cursor.execute(set_primary_query)
+        connection.commit()
+        
+        secondary_servers = metadata_obj.get_secondary_servers(shard, best_primary_server[shard][0])
+        try:
+            response, status = server_set_primary(shard, best_primary_server[shard][0], secondary_servers)
+        except:
+            continue
+
+    return 1
+    
+
+
+
+
+class Post_Handler:
+    async def primary_handler(self, request):
+       
+        if primary_elect(request):
+            return web.json_response({"message": "Primary server set successfully", "status": "success"}, status = 200)
+
+    
+    async def add_server_handler(self, request):
+        print("Add server handler")
+        content = await request.json()
+        shards = content['shards']
+        server_id = content['server_id']
+        metadata_obj.add_server(server_id, shards)
+        return web.json_response({"message": "Server added successfully", "status": "success"}, status = 200)
+
+
+class Delete_Handler:
+    async def remove_server_handler(self, request):
+        print("Delete server handler")
+        content = await request.json()
+        server_id = content['server_id']
+        shard_list = metadata_obj.get_shards(server_id)
+        for shard in shard_list:
+            metadata_obj.remove_server(server_id)
+        return web.json_response({"message": "Server deleted successfully", "status": "success"}, status = 200)
+    
+
+handle_post = Post_Handler()
+handle_delete = Delete_Handler()
+
+app = web.Application()
+app.router.add_post('/primary_elect', handle_post.primary_handler)
+app.router.add_post('/add_server', handle_post.add_server_handler)
+app.router.add_post('/init', handle_post.init_handler)
+app.router.add_delete('/remove_server', handle_delete.remove_server_handler)
 
 if __name__ == "__main__":
     print("Starting shard manager")
