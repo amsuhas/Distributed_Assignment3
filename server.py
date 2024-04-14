@@ -31,7 +31,7 @@ primary_shards = []
 log_shards = {}
 log_count_shards = {}
 logs_file = open("logs.txt", "w")
-
+  
 
 class Metadata:
     def __init__(self):
@@ -470,6 +470,7 @@ class Post_handler:
                 # "current_idx": curr_idx,
                 "status": "success"
             }
+            #note add the log in the file
             return web.json_response(response_json, status=200)
         else:
             response_json = {
