@@ -62,7 +62,7 @@ class Metadata:
         insert_query = f"INSERT INTO ShardT (Stud_id_low, Shard_id, Shard_size, Valid_idx, Update_idx) VALUES ({shard_id_low}, {shard_id}, {shard_size}, 0, -1);"
         cursor.execute(insert_query)
         connection.commit()    
-        cursor.close()
+        cursor.close() 
         connection.close()
 
     def remove_shard(self, shard_id):
