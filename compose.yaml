@@ -1,0 +1,44 @@
+version: "2.2"
+
+services:
+  lb_database:
+    image: mysql:latest
+    container_name: lb_database
+    hostname: lb_database
+    networks:
+      - my_network
+    environment:
+      MYSQL_ROOT_PASSWORD: password
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "mysqladmin" ,"ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  load_balancer:
+    image: lb_image
+    depends_on:
+      lb_database:
+        condition: service_healthy
+    container_name: load_balancer
+    hostname: load_balancer
+    privileged: true
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - my_network
+
+  shard_manager:
+    image: shard_manager_image
+    depends_on:
+      lb_database:
+        condition: service_healthy
+    container_name: shard_manager
+    hostname: shard_manager
+    networks:
+      - my_network
+
+networks:
+  my_network:
+    external: true

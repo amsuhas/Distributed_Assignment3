@@ -10,11 +10,17 @@ lb_image:
 client_image:
 	docker build -f Dockerfile_client -t client_image .
 
+shard_manager_image:
+	docker build -f Dockerfile_shard_manager -t shard_manager_image .
+
 run_lb_database:
 	docker run --name lb_database --hostname lb_database --network my_network -e MYSQL_ROOT_PASSWORD=password -d mysql:latest
 
 run_lb_script:
 	docker run --privileged -dit --name load_balancer --hostname load_balancer -v /var/run/docker.sock:/var/run/docker.sock --network my_network lb_image
+
+run_shard_manager:
+	docker run -dit --name shard_manager --hostname shard_manager --network my_network shard_manager_image
 
 clear_lb_database:
 	docker exec -it lb_database mysql -uroot -ppassword -e "DROP DATABASE IF EXISTS Metadata;" 
@@ -52,3 +58,9 @@ run_dummy:
 	
 run_dummy_lb:
 	docker run --privileged -dit --name load_balancer --hostname load_balancer -v /var/run/docker.sock:/var/run/docker.sock --network my_network dummy_image 
+
+run_dummy_server:
+	docker run -dit --name $(sname) --hostname $(sname) --network my_network dummy_image
+
+run_dummy_shard_manager:
+	docker run -dit --name shard_manager --hostname shard_manager --network my_network dummy_image

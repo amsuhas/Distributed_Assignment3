@@ -1,204 +1,47 @@
-import json
-import os
-from http.server import BaseHTTPRequestHandler, HTTPServer
+import http.client
+import time
+import asyncio
+import random
+from sortedcontainers import SortedDict
+import docker
 from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
-import mysql.connector
+import threading
+import json
+import math
+import threading
 import copy
+import os
+import mysql.connector
+import mysql.connector.pooling
 import asyncio
 from aiohttp import web
 
 my_server_id = os.environ.get('ID')
 connection = {}
 cursor = {}
-read_connection = mysql.connector.connect(
+connection = mysql.connector.connect(
     host="localhost",
     user="myuser",
     password="mypass",
-    # database="Student_info"
+    database="Student_info"
 )
-read_cursor = read_connection.cursor()
+cursor = connection.cursor()
 
 # Create a connection pool
-connection_metadata = mysql.connector.pooling.MySQLConnectionPool(
-    host="lb_database",
-    user="root",
-    password="password"
-)
+# connection_metadata = mysql.connector.pooling.MySQLConnectionPool(
+#     host="lb_database",
+#     user="root",
+#     password="password"
+# )
 
 # cursor = connection.cursor()
 # update_idx_dict = {}
 # primary_shards = []
-log_shards = {}
+# log_shards = {}
 log_count_shards = {}
-logs_file = open("logs.txt", "w")
+log_file_shards = {}
 is_primary_dict = {}
-
-class Metadata:
-    def __init__(self):
-        connection = connection_metadata.get_connection()
-        cursor = connection.cursor()
-        cursor.execute("CREATE DATABASE IF NOT EXISTS Metadata")
-        cursor.execute("USE Metadata")
-
-        # print("Creating tables")
-        # table_name = "ShardT"
-        # create_table_query = f"CREATE TABLE {table_name} ( Stud_id_low INT, Shard_id INT, Shard_size INT, Valid_idx INT, Update_idx INT);"
-        # print(create_table_query)
-        # cursor.execute(create_table_query)
-
-        # table_name = "MapT"
-        # create_table_query = f"CREATE TABLE {table_name} ( Shard_id INT, Server_id INT);"
-        # print(create_table_query)
-        # cursor.execute(create_table_query)
-        connection.commit()
-        cursor.close()
-        connection.close()
-
-    def add_shard(self, shard_id, shard_size,shard_id_low):
-        connection = connection_metadata.get_connection()
-        cursor = connection.cursor()
-        cursor.execute("USE Metadata")
-        print(f"Inside add_shard function. adding {shard_id} info to ShardT")
-        insert_query = f"INSERT INTO ShardT (Stud_id_low, Shard_id, Shard_size, Valid_idx, Update_idx) VALUES ({shard_id_low}, {shard_id}, {shard_size}, 0, -1);"
-        cursor.execute(insert_query)
-        connection.commit()    
-        cursor.close() 
-        connection.close()
-
-    def remove_shard(self, shard_id):
-        connection = connection_metadata.get_connection()
-        cursor = connection.cursor()
-        cursor.execute("USE Metadata")
-        print(f"Removing shard:{shard_id} from ShardT")
-        delete_query = f"DELETE FROM ShardT WHERE Shard_id = {shard_id};"
-        cursor.execute(delete_query)
-        connection.commit()
-        cursor.close()
-        connection.close()
-    
-    def add_server(self, server_id, shard_list):
-        connection = connection_metadata.get_connection()
-        cursor = connection.cursor()
-        cursor.execute("USE Metadata")
-        print(f"adding server:{server_id} having shard_list: {shard_list} in MapT")
-        for shard in shard_list:
-            insert_query = f"INSERT INTO MapT (Shard_id, Server_id) VALUES ({shard}, {server_id});"
-            cursor.execute(insert_query)
-        connection.commit()
-        cursor.close()
-        connection.close()
-
-    def remove_server(self, server_id):
-        connection = connection_metadata.get_connection()
-        cursor = connection.cursor()
-        cursor.execute("USE Metadata")
-        print(f"Removing server:{server_id} from MapT")
-        delete_query = f"DELETE FROM MapT WHERE Server_id = {server_id};"
-        cursor.execute(delete_query)
-        connection.commit()
-        cursor.close()
-        connection.close()
-
-    def get_shards(self, server_id):
-        connection = connection_metadata.get_connection()
-        cursor = connection.cursor()
-        cursor.execute("USE Metadata")
-        print(f"Getting shards for server:{server_id}")
-        select_query = f"SELECT Shard_id FROM MapT WHERE Server_id = {server_id};"
-        cursor.execute(select_query)
-        shard_list = cursor.fetchall()
-        cursor.close()
-        connection.close()
-        return shard_list
-
-    def get_all_shards(self):
-        connection = connection_metadata.get_connection()
-        cursor = connection.cursor()
-        cursor.execute("USE Metadata")
-        print(f"Getting all shards")
-        select_query = f"SELECT Stud_id_low, Shard_id, Shard_size FROM ShardT;"
-        cursor.execute(select_query)
-        shard_list = cursor.fetchall()
-        cursor.close()
-        connection.close()
-        return shard_list
-    
-    def get_shard_id(self, stud_id):
-        connection = connection_metadata.get_connection()
-        cursor = connection.cursor()
-        cursor.execute("USE Metadata")
-        print(f"Getting shard_id for stud_id:{stud_id}")
-        select_query = f"SELECT Shard_id FROM ShardT WHERE Stud_id_low <= {stud_id} AND Stud_id_low + Shard_size > {stud_id};"
-        cursor.execute(select_query)
-        shard_id = cursor.fetchall()
-        cursor.close()
-        connection.close()
-        if len(shard_id) == 0:
-            return None
-        return shard_id[0][0]
-    
-    def get_server_id(self, shard_id):
-        connection = connection_metadata.get_connection()
-        cursor = connection.cursor()
-        cursor.execute("USE Metadata")
-        print(f"Getting server_id for shard_id:{shard_id}")
-        select_query = f"SELECT Server_id FROM MapT WHERE Shard_id = {shard_id};"
-        cursor.execute(select_query)
-        server_ids = cursor.fetchall()
-        cursor.close()
-        connection.close()
-        return server_ids
-    
-    def get_valid_idx(self, shard_id):
-        connection = connection_metadata.get_connection()
-        cursor = connection.cursor()
-        cursor.execute("USE Metadata")
-        print(f"Getting valid_idx for shard_id:{shard_id}")
-        select_query = f"SELECT Valid_idx FROM ShardT WHERE Shard_id = {shard_id};"
-        cursor.execute(select_query)
-        valid_idx = cursor.fetchall()
-        cursor.close()
-        connection.close()
-        return valid_idx[0][0]
-    
-    def get_update_idx(self, shard_id):
-        connection = connection_metadata.get_connection()
-        cursor = connection.cursor()
-        cursor.execute("USE Metadata")
-        print(f"Getting update_idx for shard_id:{shard_id}")
-        select_query = f"SELECT Update_idx FROM ShardT WHERE Shard_id = {shard_id};"
-        cursor.execute(select_query)
-        update_idx = cursor.fetchall()
-        cursor.close()
-        connection.close()
-        return update_idx[0][0]
-    
-    def update_valid_idx(self, shard_id, valid_idx):
-        connection = connection_metadata.get_connection()
-        cursor = connection.cursor()
-        cursor.execute("USE Metadata")
-        print(f"Updating valid_idx for shard_id:{shard_id} to {valid_idx}")
-        update_query = f"UPDATE ShardT SET Valid_idx = {valid_idx} WHERE Shard_id = {shard_id};"
-        cursor.execute(update_query)
-        connection.commit()
-        cursor.close()
-        connection.close()
-
-    def update_update_idx(self, shard_id, update_idx):
-        connection = connection_metadata.get_connection()
-        cursor = connection.cursor()
-        cursor.execute("USE Metadata")
-        print(f"Updating update_idx for shard_id:{shard_id} to {update_idx}")
-        update_query = f"UPDATE ShardT SET Update_idx = {update_idx} WHERE Shard_id = {shard_id};"
-        cursor.execute(update_query)
-        connection.commit()
-        cursor.close()
-        connection.close()
-        
-        
-        
-        
-metadata_obj = Metadata()   
+# last_query_shards = {}
 
 
 def send_request(host='server', port=5000, path='/config',payload={},method='POST'):
@@ -228,14 +71,19 @@ def manage_request_non_primary(shard, payload, endpoint, method):
         total_servers = len(server_ids)
         success_count = 1
         for server_id in server_ids:
-            if(server_id == my_server_id):
+            print(server_id, my_server_id)
+            # if(server_id == "load_balancer"):
+            #     continue
+            if(int(server_id) == int(my_server_id)):
                 continue
             server_name = "server" + str(server_id)
             try:
                 response, status_code = send_request(server_name, 5000, endpoint, payload, method)
+                print("try me chale gaya")
                 if response['status'] == "success":
                     success_count += 1
             except:
+                print(f"Couldnot connect to server {server_id}")
                 continue
             
                 
@@ -250,10 +98,19 @@ def manage_request_non_primary(shard, payload, endpoint, method):
             # cursor[shard].rollback()
             decision = "rollback"
             
+            
+        decision, response = decision_func({"shard": shard, "decision": decision})
         for server_id in server_ids:
+            # if(server_id == "load_balancer"):
+            #     print("load balancer continuing")
+            #     continue
+            if(server_id == my_server_id):
+                continue
             try:
                 response, status = server_decision(shard, decision, server_id)
+                print(response, status)
             except:
+                print(f"Couldnot connect to server {server_id} for decision")
                 continue
     
     return decision
@@ -266,6 +123,72 @@ def server_decision(shard, decision, server_id):
     server_name = "server" + str(server_id)
     response, status = send_request(server_name, 5000, '/decision', payload, 'POST')
     return response, status
+    
+    
+    
+    
+    
+def decision_func(payload):
+    shard = payload.get('shard')
+    decision = payload.get('decision')
+    
+    # read last line from the log file which is a json object
+    logs_file = log_file_shards[shard]
+    # logs_file.seek(0, 2)
+    # logs_file.seek(logs_file.tell() - 1, 0)
+    # while logs_file.read(1) != b'\n':
+    #     logs_file.seek(logs_file.tell() - 2, 0)
+    # last_line = logs_file.readline().decode()
+    # last_line = json.loads(last_line)
+
+
+    logs_file.seek(0, 2)
+    # Start reading from the end until a newline character is found
+    pos = logs_file.tell()
+    while pos > 0:
+        pos -= 1
+        logs_file.seek(pos)
+        if logs_file.read(1) == '\n':
+            break
+    # Read the last line
+    last_line = logs_file.readline().strip()
+    print(type(last_line))
+    print(last_line)
+    # Parse the last line as a JSON object
+    try:
+        last_line = json.loads(last_line)
+        # return json_object
+    except json.JSONDecodeError as e:
+        print("Error decoding JSON:", e)
+        # return None
+    
+    if decision == "commit":
+        # connection.commit()
+        # last_query_shards[shard].execute_query()
+        
+        
+        
+        query = Query(last_line["type"], last_line["data"])
+        query.execute_query()
+        
+        response_json = {
+            "message": f'{shard} {last_line["type"]} query committed',
+            "status": "success"
+        }
+        print("Committing query responding")
+        
+        return decision, response_json
+        # return web.json_response(response_json, status=200)
+    else:
+        # connection.rollback()
+        response_json = {
+            "message": f'{shard} {last_line["type"]} query rolled back/aborted',
+            "status": "success"
+        }
+        print("Rolling back query responding")
+        return decision, response_json
+        # return web.json_response(response_json, status=200)
+    
     
         
         
@@ -288,13 +211,13 @@ class Get_handler:
 
 
         for shard in shards:
-            use_query = f"USE {shard};"
-            read_cursor.execute(use_query)
+            # use_query = f"USE {shard};"
+            # cursor.execute(use_query)
             query = f"SELECT * FROM {shard};"
-            read_cursor.execute(query)
+            cursor.execute(query)
             
             # note 
-            rows = read_cursor.fetchall()
+            rows = cursor.fetchall()
             res = ""
 
             out_list = []
@@ -337,12 +260,10 @@ class Get_handler:
 class Post_handler:
     async def config_handler(self, request):
         print("Received config request\n")
-        
+        # return web.json_response({}, status=200)
         global connection
         global cursor
-        
         global my_server_id
-        
         payload=await request.json()
 
         schema = payload.get('schema')
@@ -353,18 +274,26 @@ class Post_handler:
         dict={}
         dict['Number'] = 'INT'
         dict['String'] = 'VARCHAR(255)'
+        
+        # create_database_query = f"CREATE DATABASE IF NOT EXISTS Student_info;"
+        # cursor.execute(create_database_query)
+        # connection.commit()
+        # cursor.execute("USE Student_info;")
+        
         for shard in shards:
             
-            connection[shard] = mysql.connector.connect(
-                host="localhost",
-                user="myuser",
-                password="mypass",
-                # database="Student_info"
-            )
-            cursor[shard] = connection[shard].cursor()
+            # connection[shard] = mysql.connector.connect(
+            #     host="localhost",
+            #     user="myuser",
+            #     password="mypass"
+            #     # database="Student_info"
+            # )
+            # cursor[shard] = connection[shard].cursor()
             
             log_count_shards[shard] = 0
             is_primary_dict[shard] = (0, [])
+            # I want to have both read and write access to the log file
+            log_file_shards[shard] = open(f"{shard}_log.txt", "a+")
             
             # update_idx_dict[shard] = 0
             # table_name = shard
@@ -372,8 +301,8 @@ class Post_handler:
             # # print(columns)
             # create_table_query = f"CREATE TABLE {table_name} ({columns});"
             
-            database_name = shard
-            create_database_query = f"CREATE DATABASE IF NOT EXISTS {database_name};"
+            # database_name = shard
+            # create_database_query = f"CREATE DATABASE IF NOT EXISTS {database_name};"
             
             table_name = shard
             columns = ', '.join([f"{col} {dict[dtype]}" for col, dtype in zip(schema['columns'], schema['dtypes'])])
@@ -383,10 +312,10 @@ class Post_handler:
 
             # print(create_database_query)
             # print(create_table_query)
-            cursor[shard].execute(create_database_query)
-            cursor[shard].execute(create_table_query)
-            connection[shard].commit()
-            tables_created += (f"{my_server_id}:{database_name}, ")
+            # cursor[shard].execute(create_database_query)
+            cursor.execute(create_table_query)
+            connection.commit()
+            tables_created += (f"server{my_server_id}:{table_name}, ")
         tables_created =  tables_created[:-2]
         tables_created += (" configured")
 
@@ -407,12 +336,12 @@ class Post_handler:
 
         response_data = {}
 
-        use_query = f"USE {shard};"
-        read_cursor.execute(use_query)
+        # use_query = f"USE {shard};"
+        # cursor.execute(use_query)
 
         query = f"SELECT * FROM {shard} WHERE Stud_id BETWEEN {low} AND {high};"
-        read_cursor.execute(query)
-        rows = read_cursor.fetchall()
+        cursor.execute(query)
+        rows = cursor.fetchall()
 
 
         out_list = []
@@ -441,45 +370,58 @@ class Post_handler:
         
         for stud in studs_data:
             print(stud)
-            sid = int(stud.get('Stud_id'))
-            sname = '\"' + stud.get('Stud_name') + '\"'
-            smarks = '\"' + stud.get('Stud_marks') + '\"'
+            # sid = int(stud.get('Stud_id'))
+            # sname = '\"' + stud.get('Stud_name') + '\"'
+            # smarks = '\"' + stud.get('Stud_marks') + '\"'
+            # check_query = f"SELECT COUNT(*) FROM {shard} WHERE Stud_id = {sid};"
+            # cursor.execute(check_query)
+            # check = cursor.fetchone()[0]
             
-            use_query = f"USE {shard};"
-            cursor[shard].execute(use_query)
+            # if(check > 0):
+            #     update_query = f"UPDATE {shard} SET Stud_id = {sid}, Stud_name = {sname}, Stud_marks = {smarks} WHERE Stud_id = {sid};"
+            #     cursor.execute(update_query)    
+            # else:
+            #     write_query = f"INSERT INTO {shard}(Stud_id, Stud_name, Stud_marks) VALUES ({sid}, {sname}, {smarks});"
+            #     cursor.execute(write_query)
+            #     # curr_idx = curr_idx + 1
+            
+            # last_query_shards[shard] = Query("write", payload)
         
-            check_query = f"SELECT COUNT(*) FROM {shard} WHERE Stud_id = {sid};"
-            cursor[shard].execute(check_query)
-            check = cursor[shard].fetchone()[0]
+        log_entry = {}
+        log_count_shards[shard] += 1
+        log_entry['counter'] = log_count_shards[shard]
+        log_entry['type'] = 'write'
+        log_entry['data'] = payload
+        log_file_shards[shard].write("\n")
+        log_file_shards[shard].write(json.dumps(log_entry))
+        # print new line to file
+        # log_shards[shard] = f"writing data in {shard}: \n{studs_data}"
+        if is_primary_dict[shard][0] == 1:
+            decision = manage_request_non_primary(shard, payload, '/write', 'POST')
             
-            if(check > 0):
-                update_query = f"UPDATE {shard} SET Stud_id = {sid}, Stud_name = {sname}, Stud_marks = {smarks} WHERE Stud_id = {sid};"
-                cursor[shard].execute(update_query)    
+            if(decision == 'commit'):
+                # connection.commit()
+                response_json = {
+                    "message": 'Data entries added',
+                    # "current_idx": curr_idx,
+                    "status": "success"
+                }
+                #note add the log in the file
+                return web.json_response(response_json, status=200)
             else:
-                write_query = f"INSERT INTO {shard}(Stud_id, Stud_name, Stud_marks) VALUES ({sid}, {sname}, {smarks});"
-                cursor[shard].execute(write_query)
-                # curr_idx = curr_idx + 1
-        
-        log_shards[shard] = f"writing data in {shard}: \n{studs_data}"
-            
-        decision = manage_request_non_primary(shard, payload, '/write', 'POST')
-            
-        if(decision == 'commit'):
-            # connection.commit()
+                response_json = {
+                    "message": 'Write failed',
+                    "status": "failure"
+                }
+                return web.json_response(response_json, status=404)
+        else:
             response_json = {
-                "message": 'Data entries added',
+                "message": 'Acknowledgement for addition of Data entries',
                 # "current_idx": curr_idx,
                 "status": "success"
             }
             #note add the log in the file
             return web.json_response(response_json, status=200)
-        else:
-            response_json = {
-                "message": 'Write failed',
-                "status": "failure"
-            }
-            return web.json_response(response_json, status=404)
-        
         
         
         
@@ -497,28 +439,69 @@ class Post_handler:
     #     return web.json_response(response_json, status=200)  
     
     
+    
     async def decision_handler(self, request):
         print("Received decision request\n")
         payload = await request.json()
-        shard = payload.get('shard')
-        decision = payload.get('decision')
+        
+        decision, response_json = decision_func(payload)
+        
+        # shard = payload.get('shard')
+        # decision = payload.get('decision')
+        
+        # # read last line from the log file which is a json object
+        # logs_file = log_file_shards[shard]
+        # # logs_file.seek(0, 2)
+        # # logs_file.seek(logs_file.tell() - 1, 0)
+        # # while logs_file.read(1) != b'\n':
+        # #     logs_file.seek(logs_file.tell() - 2, 0)
+        # # last_line = logs_file.readline().decode()
+        # # last_line = json.loads(last_line)
+
+
+        # logs_file.seek(0, 2)
+        # # Start reading from the end until a newline character is found
+        # pos = logs_file.tell()
+        # while pos > 0:
+        #     pos -= 1
+        #     logs_file.seek(pos)
+        #     if logs_file.read(1) == '\n':
+        #         break
+        # # Read the last line
+        # last_line = logs_file.readline().strip()
+        # print(type(last_line))
+        # print(last_line)
+        # # Parse the last line as a JSON object
+        # try:
+        #     last_line = json.loads(last_line)
+        #     # return json_object
+        # except json.JSONDecodeError as e:
+        #     print("Error decoding JSON:", e)
+        #     # return None
+        
         if decision == "commit":
-            connection[shard].commit()
-            response_json = {
-                "message": f'{shard} database committed',
-                "status": "success"
-            }
-            log_count_shards[shard] += 1
-            logs_file.write(log_shards[shard])
-            logs_file.write("\n")
-            logs_file.flush()
+            # connection.commit()
+            # last_query_shards[shard].execute_query()
+            
+            
+            
+            # query = Query(last_line["type"], last_line["data"])
+            # query.execute_query()
+            
+            # response_json = {
+            #     "message": f'{shard} {last_line["type"]} query committed',
+            #     "status": "success"
+            # }
+            # print("Committing query responding")
+            
             return web.json_response(response_json, status=200)
         else:
-            connection[shard].rollback()
-            response_json = {
-                "message": f'{shard} database rolled back',
-                "status": "success"
-            }
+            # connection.rollback()
+            # response_json = {
+            #     "message": f'{shard} {last_line["type"]} query rolled back/aborted',
+            #     "status": "success"
+            # }
+            # print("Rolling back query responding")
             return web.json_response(response_json, status=200)
     
 
@@ -535,18 +518,21 @@ class Put_handler:
         sname ='\"'+ data.get('Stud_name')+'\"'
         smarks = '\"'+data.get('Stud_marks')+'\"'
             
-        use_query = f"USE {shard};"
-        cursor[shard].execute(use_query)
+        # use_query = f"USE {shard};"
+        # cursor[shard].execute(use_query)
         
         check_query = f"SELECT COUNT(*) FROM {shard} WHERE Stud_id = {sid};"
-        cursor[shard].execute(check_query)
-        check = cursor[shard].fetchone()[0]
+        cursor.execute(check_query)
+        check = cursor.fetchone()[0]
         
         if check <= 0:
             return web.json_response({"error": f"Entry with Stud_id:{sid} does not exist in the given shard"}, status=400)
         
-        update_query = f"UPDATE {shard} SET Stud_id = {sid}, Stud_name = {sname}, Stud_marks = {smarks} WHERE Stud_id = {stud_id};"
-        cursor[shard].execute(update_query)
+        # update_query = f"UPDATE {shard} SET Stud_id = {sid}, Stud_name = {sname}, Stud_marks = {smarks} WHERE Stud_id = {stud_id};"
+        # cursor.execute(update_query)
+        
+        # last_query_shards[shard] = Query("update", payload)
+        
         # connection[shard].commit()
         # response_json = {
         #     "message": f'Data entry for Stud_id:{stud_id} updated',
@@ -554,26 +540,39 @@ class Put_handler:
         # }
         # return web.json_response(response_json, status=200)
         
-        
-        log_shards[shard] = f"Updating data in {shard} for Stud_id: {stud_id} with data:\n{data}"
+        log_entry = {}
+        log_file_shards[shard].write("\n")
+        log_count_shards[shard] += 1
+        log_entry['counter'] = log_count_shards[shard]
+        log_entry['type'] = 'update'
+        log_entry['data'] = payload
+        log_file_shards[shard].write(json.dumps(log_entry))
+        # log_shards[shard] = f"Updating data in {shard} for Stud_id: {stud_id} with data:\n{data}"
             
         
             
-        decision = manage_request_non_primary(shard, payload, '/update', 'PUT')
         
-        if(decision == 'commit'):
-            # connection.commit()
-            response_json = {
-                "message": f'Data entry for Stud_id:{stud_id} updated',
-                "status": "success"
-            }
-            return web.json_response(response_json, status=200)
+        if(is_primary_dict[shard][0] == 1):
+            decision = manage_request_non_primary(shard, payload, '/update', 'PUT')
+            if(decision == 'commit'):
+                # connection.commit()
+                response_json = {
+                    "message": f'Data entry for Stud_id:{stud_id} updated',
+                    "status": "success"
+                }
+                return web.json_response(response_json, status=200)
+            else:
+                response_json = {
+                    "message": 'Update failed',
+                    "status": "failure"
+                }
+                return web.json_response(response_json, status=404)
         else:
             response_json = {
-                "message": 'Update failed',
-                "status": "failure"
+                "message": f'Acknowledgement for updation of dat entry for Stud_id:{stud_id}',
+                "status": "success"
             }
-            return web.json_response(response_json, status=404)
+            return web.json_response(response_json, status=200)    
         
         
     
@@ -585,6 +584,7 @@ class Put_handler:
         secondary_servers = payload.get('secondary_servers')
         # for shard in shards:
             # primary_shards.append(shard)
+        print(f"Primary shards set for {shard} with secondary servers: {secondary_servers}")
         is_primary_dict[shard] = (1, secondary_servers)
         response_json = {
             "message": 'Primary shards set',
@@ -604,12 +604,12 @@ class Delete_handler:
         shard = payload.get('shard')
         sid = int(payload.get('Stud_id'))
         
-        use_query = f"USE {shard};"
-        cursor[shard].execute(use_query)
+        # use_query = f"USE {shard};"
+        # cursor.execute(use_query)
         
         check_query = f"SELECT COUNT(*) FROM {shard} WHERE Stud_id = {sid};"
-        cursor[shard].execute(check_query)
-        check = cursor[shard].fetchone()[0]
+        cursor.execute(check_query)
+        check = cursor.fetchone()[0]
         
         if check is None:
             return web.json_response({"error": f"Entry with Stud_id:{sid} does not exist in the given shard"}, status=400)
@@ -617,31 +617,125 @@ class Delete_handler:
         if check <= 0:
             return web.json_response({"error": f"Entry with Stud_id:{sid} does not exist in the given shard"}, status=400)
         
-        delete_query = f"DELETE FROM {shard} WHERE Stud_id = {sid};"
-        cursor[shard].execute(delete_query)
+        # delete_query = f"DELETE FROM {shard} WHERE Stud_id = {sid};"
+        # cursor.execute(delete_query)
+        
+        # last_query_shards[shard] = Query("delete", payload)
+        
         # connection[shard].commit()
         # update_idx_dict[shard] = update_idx_dict[shard] - 1
+        log_entry = {}
+        log_file_shards[shard].write("\n")
+        log_count_shards[shard] += 1
+        log_entry['counter'] = log_count_shards[shard]
+        log_entry['type'] = 'delete'
+        log_entry['data'] = payload
+        log_file_shards[shard].write(json.dumps(log_entry))
+        # log_shards[shard] = f"Delete data in {shard} of Stud_id: {sid}"
         
-        log_shards[shard] = f"Delete data in {shard} of Stud_id: {sid}"
+        
+        if(is_primary_dict[shard][0] == 1):    
+            decision = manage_request_non_primary(shard, payload, '/del', 'DELETE')
             
-        decision = manage_request_non_primary(shard, payload, '/del', 'DELETE')
-        
-        if(decision == 'commit'):
-            # connection.commit()
+            if(decision == 'commit'):
+                # connection.commit()
+                response_json = {
+                    "message": f'Data entry with Stud_id:{sid} removed',
+                    "status": "success"
+                }
+                return web.json_response(response_json, status=200)
+            else :
+                response_json = {
+                    "message": 'Delete failed',
+                    "status": "failure"
+                }
+                return web.json_response(response_json, status=404)
+        else:
             response_json = {
-                "message": f'Data entry with Stud_id:{sid} removed',
+                "message": f'Acknowledgement of removal of data entry with Stud_id:{sid}',
                 "status": "success"
             }
             return web.json_response(response_json, status=200)
-        else :
-            response_json = {
-                "message": 'Delete failed',
-                "status": "failure"
-            }
-            return web.json_response(response_json, status=404)
         
             
+      
+      
+class Query:
+    def __init__(self, query_type, payload):
+        self.query_type = query_type
+        self.payload = payload
         
+    def execute_query(self):
+        if(self.query_type == "write"):
+            self.write_query()
+            print("Write query executed")
+        elif(self.query_type == "update"):
+            self.update_query()
+            print("Update query executed")
+        elif(self.query_type == "delete"):
+            self.delete_query()
+            print("Delete query executed")
+        connection.commit()
+        print("Query committed")
+            
+    def write_query(self):
+        shard = self.payload.get('shard')
+        # curr_idx = int(payload.get('curr_idx'))
+        studs_data = self.payload.get('data')
+        
+        
+        for stud in studs_data:
+            print(stud)
+            sid = int(stud.get('Stud_id'))
+            sname = '\"' + stud.get('Stud_name') + '\"'
+            smarks = '\"' + stud.get('Stud_marks') + '\"'
+            check_query = f"SELECT COUNT(*) FROM {shard} WHERE Stud_id = {sid};"
+            cursor.execute(check_query)
+            check = cursor.fetchone()[0]
+            
+            if(check > 0):
+                update_query = f"UPDATE {shard} SET Stud_id = {sid}, Stud_name = {sname}, Stud_marks = {smarks} WHERE Stud_id = {sid};"
+                cursor.execute(update_query)    
+            else:
+                write_query = f"INSERT INTO {shard}(Stud_id, Stud_name, Stud_marks) VALUES ({sid}, {sname}, {smarks});"
+                cursor.execute(write_query)
+                # curr_idx = curr_idx + 1
+                
+    def update_query(self):
+        shard = self.payload.get('shard')
+        stud_id = int(self.payload.get('Stud_id'))
+        data = self.payload.get('data')
+        sid = int(data.get('Stud_id'))
+        sname ='\"'+ data.get('Stud_name')+'\"'
+        smarks = '\"'+data.get('Stud_marks')+'\"'
+            
+        # check_query = f"SELECT COUNT(*) FROM {shard} WHERE Stud_id = {sid};"
+        # cursor.execute(check_query)
+        # check = cursor.fetchone()[0]
+        
+        # if check <= 0:
+        #     return {"error": f"Entry with Stud_id:{sid} does not exist in the given shard"}
+        
+        update_query = f"UPDATE {shard} SET Stud_id = {sid}, Stud_name = {sname}, Stud_marks = {smarks} WHERE Stud_id = {stud_id};"
+        cursor.execute(update_query)
+        
+    def delete_query(self):
+        shard = self.payload.get('shard')
+        sid = int(self.payload.get('Stud_id'))
+        
+        # check_query = f"SELECT COUNT(*) FROM {shard} WHERE Stud_id = {sid};"
+        # cursor.execute(check_query)
+        # check = cursor.fetchone()[0]
+        
+        # if check is None:
+        #     return {"error": f"Entry with Stud_id:{sid} does not exist in the given shard"}
+        
+        # if check <= 0:
+        #     return {"error": f"Entry with Stud_id:{sid} does not exist in the given shard"}
+        
+        delete_query = f"DELETE FROM {shard} WHERE Stud_id = {sid};"
+        cursor.execute(delete_query)
+  
 
 
 handle_get = Get_handler()

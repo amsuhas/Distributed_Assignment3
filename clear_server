@@ -1,0 +1,10 @@
+mysql -e 'DROP DATABASE Student_info'
+mysql -e 'CREATE DATABASE IF NOT EXISTS Student_info;'
+mysql -e "GRANT ALL PRIVILEGES ON Student_info.* TO 'myuser'@'localhost';"
+
+
+docker cp . load_balancer:/usr/src/app/
+docker cp . shard_manager:/usr/src/app/
+docker cp . client:/usr/src/app/
+make clear_lb_database
+make rm_server_containers
