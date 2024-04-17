@@ -105,7 +105,7 @@ class Metadata:
         # connection = connection_pool.get_connection()
         # cursor = connection.cursor()
         cursor.execute("USE Metadata")
-        print(f"adding server:{server_id} having shard_list: {shard_list} in MapT")
+        # print(f"adding server:{server_id} having shard_list: {shard_list} in MapT")
         for shard in shard_list:
             insert_query = f"INSERT INTO MapT (Shard_id, Server_id, Is_Primary) VALUES ({shard}, {server_id}, 0);"
             cursor.execute(insert_query)
@@ -117,7 +117,7 @@ class Metadata:
         # connection = connection_pool.get_connection()
         # cursor = connection.cursor()
         cursor.execute("USE Metadata")
-        print(f"Removing server:{server_id} from MapT")
+        # print(f"Removing server:{server_id} from MapT")
         delete_query = f"DELETE FROM MapT WHERE Server_id = {server_id};"
         cursor.execute(delete_query)
         connection.commit()
@@ -1040,6 +1040,34 @@ class Get_handler:
 
         return web.json_response(payload, status=200)
     
+    async def read_server_handler(self, request):
+        global initialized
+        global servers_obj
+        global metadata_obj
+        global global_schema
+        if initialized == False:
+            return web.json_response({"message": "<Error> Database not initialized", "status": "failure"}, status=400)
+        print("In read_server endpoint")
+        server_id = int(request.match_info['server_id'])
+        server_name = 'server' + str(server_id)
+        # shard_list = metadata_obj.get_shards(server_id)
+        # for i in range(len(shard_list)):
+        #     shard_list[i]=int(shard_list[i][0])
+        # shard_list = ['sh' + str(shard[0]) for shard in shard_list]
+        payload = {
+            
+        }
+        try:
+            response, status = send_request(server_name, 5000, '/read_all', payload, 'GET')
+            if status != 200:
+                return web.json_response({"message": "<Error> Server not reachable", "status": "failure"}, status=400)
+        except:
+            print(f"{server_name} is not reachable")
+            web.json_response({"message": "<Error> Server not reachable", "status": "failure"}, status=400)
+            return 
+        payload = response
+        return web.json_response(payload, status=200)
+    
 class Delete_handler:
     async def remove_handler(self, request):
         global initialized
@@ -1146,6 +1174,7 @@ app.router.add_post('/read', handle_post.read_handler)
 app.router.add_post('/write', handle_post.write_handler)
 
 app.router.add_get('/status', handle_get.status_handler)
+app.router.add_get('/read/{server_id}', handle_get.read_server_handler)
 
 app.router.add_put('/update', handle_put.update_handler)
 

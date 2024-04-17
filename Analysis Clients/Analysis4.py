@@ -235,6 +235,28 @@ def send_post_request_add(host='load_balancer', port=5000, path='/add'):
         print()
         connection.close()
 
+def send_get_request_read_server(server_id,host='load_balancer', port=5000, path='/read'):
+    print(f"/read/{server_id}")
+    path = path + f"/{server_id}"
+    print(path)
+    payload = {
+        "server_id": server_id
+    }
+    headers = {'Content-type': 'application/json'}
+    json_payload = json.dumps(payload)
+    
+    connection = http.client.HTTPConnection(host, port)
+    connection.request('GET', path, json_payload, headers)
+
+    response = connection.getresponse()
+    print(f'Status: {response.status}')
+    print('Response:')
+    response_data = response.read().decode('utf-8')
+    json_response = json.loads(response_data)
+    print(json.dumps(json_response, indent=4))
+    print()
+    connection.close()
+
 if __name__ == '__main__':
     send_post_request_config()
     # time.sleep(10)
@@ -250,6 +272,7 @@ if __name__ == '__main__':
     send_post_request_read(0,200)
     send_put_request_update(4)
     send_post_request_read(0,200)
+    send_get_request_read_server(0)
 
     send_post_request_add()
     send_del_request_rm()

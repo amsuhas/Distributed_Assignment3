@@ -253,6 +253,40 @@ class Get_handler:
         response_data["status"] = "success"
         print(response_data)
         return web.json_response(response_data, status=200)
+    
+    async def read_all_handler(self, request):
+        print("Received read all request\n")
+        payload = await request.json()
+        response_data = {}
+        data = {}
+        shards = []
+        for shard in log_count_shards.keys():
+            shards.append(shard)
+        for shard in shards:
+            # use_query = f"USE {shard};"
+            # cursor.execute(use_query)
+            query = f"SELECT * FROM {shard};"
+            cursor.execute(query)
+            
+            # note 
+            rows = cursor.fetchall()
+
+            out_list = []
+            res = {}
+            for row in rows:
+                res["Stud_id"] = str(row[0])
+                res["Stud_name"] = row[1]
+                res["Stud_marks"] = row[2]
+
+                out_list.append(copy.deepcopy(res))
+                res = {}
+
+            response_data[shard] = out_list
+            
+        # response_data["data"] = data
+        response_data["status"] = "success"
+        print(response_data)
+        return web.json_response(response_data, status=200)
         
 
 
@@ -753,6 +787,7 @@ app.router.add_post('/decision', handle_post.decision_handler)
 app.router.add_get('/heartbeat', handle_get.heartbeat_handler)
 app.router.add_get('/copy', handle_get.copy_handler)
 app.router.add_get('/log_count', handle_get.log_count_handler)
+app.router.add_get('/read_all', handle_get.read_all_handler)
 
 app.router.add_put('/update', handle_put.update_handler)
 app.router.add_put('/set_primary', handle_put.set_primary)

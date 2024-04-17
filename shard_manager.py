@@ -284,7 +284,7 @@ def send_get_request_with_timeout(host_name='localhost', port=5000, path='/'):
 
 def thread_heartbeat():
     # global servers_obj
-    # time.sleep(20)
+    time.sleep(240)
     print("Heartbeat thread started")
     global metadata_obj
     while(1):
@@ -297,7 +297,7 @@ def thread_heartbeat():
             host_name = "server" + str(host_name)
             print("host_name heartbeat", host_name)
             send_get_request_with_timeout(host_name, 5000, '/heartbeat')
-        time.sleep(90)
+        time.sleep(240)
 
 
 
