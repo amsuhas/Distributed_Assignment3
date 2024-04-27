@@ -1,6 +1,6 @@
 # Create a custom docker network (named "my_network")
 ```bash
-docker network create my_network
+make create_network
 ```
 
 # Create images of server, client and load balancer
@@ -110,8 +110,6 @@ Used Sorted Containers (similar to sets in C++) to find nearest server for a cli
 ### Timeout in /rm endpoint:
 After deleting the entries from the data structures in the load balancer, a timeout of 20s is set in order to complete any pending client requests associated with the server. After the timeout is over, the container is finally stopped and removed. This is similar to how a TCP connection works after receving a FIN request, as it waits for all pending TCP packets.
 
-<!-- ### Update index
-We used an update index for each shard to keep track if any index of that shard is updated (via /update or /del endpoint). This is done so that when a read request comes, and if update index lies between the range of the request, then the request is served from excluding the index under update. -->
 
 ### Decision endpoint:
 This endpoint is implemented in the servers, which is used by the primary server to notify secondary servers to commit or reject the previously requested query based on the number of responses received by the primary server for the request.
@@ -120,10 +118,6 @@ This endpoint is implemented in the servers, which is used by the primary server
 ### Mutex Locks
 Shard specific mutex locks are used for write, update and delete requests need to be served from the shard. This is done to ensure that only one thread can access the shard at a time. Whereas, for read requests, the shard is accessed without any locks.
 Also, a mutex lock is used for the server_id_to_container map to ensure that only one thread can access the map at a time. It is used in init, add, rm and heartbeat endpoints.
-
-<!-- ### Maintaining valid index in server
-We maintain a valid index for each shard in each server. This is done to ensure that whenever a read request arrives a particular server, it servers only the requests which are committed throughout all the replicas of the server. So, when a write request comes, it is first committed to all the replicas and then the valid index is updated in all the servers. This ensures that the server serves only the requests which are committed throughout all the replicas. For this purpose, we used another endpoint in the server. -->
-
 
 ## 5. New Hashing function
 We've introduced prime multipliers for added complexity. Using prime numbers helps reduce the likelihood of collisions.
