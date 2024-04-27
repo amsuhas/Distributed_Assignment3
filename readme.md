@@ -8,6 +8,7 @@ make create_network
 make lb_image
 make server_image
 make client_image
+make shard_manager_image
 ```
 
 # Spawn the load balancer and shard manager container
@@ -84,7 +85,6 @@ Description: Contain functions for interacting with metadata (ShardT and MapT) t
 
 Purpose: Provides a centralized mechanism for managing metadata operations, ensuring consistency and reliability.
 
-### 1.5 
 
 
 ## 2. Server Stoppage Detection using Heartbeat
@@ -131,9 +131,9 @@ The primary server is responsible for managing the commition of requests. The re
 
 
 ## 7. Management
-Load Balancer: Receives and manages all requests from clients
-Shard Manager: Manages heartbeat, addition and removal of servers, which includes election and management of primary servers.
-Primary Server: Responsible for management of execution of non read requests on all secondary servers
+* Load Balancer: Receives and manages all requests from clients
+* Shard Manager: Manages heartbeat, addition and removal of servers, which includes election and management of primary servers.
+* Primary Server: Responsible for management of execution of non read requests on all secondary servers
 
 
 
