@@ -213,11 +213,10 @@ def send_del_request_rm(host='load_balancer', port=5000, path='/rm'):
 def send_post_request_add(host='load_balancer', port=5000, path='/add'):
         print("/add")
         payload = {
-            "n":2,
+            "n":1,
             "new_shards": [{"Stud_id_low":12288, "Shard_id": "sh4", "Shard_size":4096}],
             "servers": {
                 "Server5":["sh1","sh2","sh4"],
-                "Server6":["sh2","sh3","sh4"],
                 }
         }
         headers = {'Content-type': 'application/json'}

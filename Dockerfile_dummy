@@ -1,5 +1,5 @@
 # Use an official python runtime as a parent image
-FROM ubuntu:latest
+FROM ubuntu:22.04
 
 # Set the working directory
 WORKDIR /usr/src/app
@@ -11,8 +11,8 @@ COPY . .
 
 RUN apt-get update
 RUN apt-get install -y python3-pip
-RUN pip install --no-cache-dir -r requirements.txt
 RUN apt-get install -y nano
+RUN pip install --no-cache-dir -r requirements.txt
 RUN apt-get install -y mysql-server 
 RUN apt-get install -y systemctl
 

@@ -1,5 +1,5 @@
 # Use an official python runtime as a parent image
-FROM ubuntu:latest
+FROM ubuntu:22.04
 
 # Set the working directory 
 WORKDIR /usr/src/app

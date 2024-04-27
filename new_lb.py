@@ -412,7 +412,7 @@ class Servers:
 
         metadata_obj.remove_server(server_id)
         try:
-            print(f"Stopping and removing container of server:{server_id}")
+            print(f"Stopping and removing containprimary_shardser of server:{server_id}")
             container = self.server_to_docker_container_map[server_id]
             container.stop()
             container.remove()
@@ -422,8 +422,8 @@ class Servers:
             pass
         print("Server" + str(server_id) + " removed")
         self.server_to_docker_container_map.pop(server_id)
-        if(len(primary_shards)!=0):
-            response, status = shm_primary_elect(primary_shards)
+        # if(len(primary_shards)!=0):
+        #     response, status = shm_primary_elect(primary_shards)
         return 1
 
 

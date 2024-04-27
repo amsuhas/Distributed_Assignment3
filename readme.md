@@ -10,10 +10,11 @@ make server_image
 make client_image
 ```
 
-# Spawn the load balancer container
+# Spawn the load balancer and shard manager container
 ```bash
 make run_lb_database # wait for around 30 seconds so that database container fully starts
 make run_lb_script
+make run_shard_manager
 ```
 
 # Spawn the client container (which will open in the interactive mode)
@@ -83,8 +84,13 @@ Description: Contain functions for interacting with metadata (ShardT and MapT) t
 
 Purpose: Provides a centralized mechanism for managing metadata operations, ensuring consistency and reliability.
 
+### 1.5 
+
+
 ## 2. Server Stoppage Detection using Heartbeat
 Description: Heartbeat signals are continuously sent to servers at regular intervals. If a server fails to respond to the heartbeat, it is considered unresponsive and subsequently removed. A new server is added to maintain the desired server count.
+
+If the server removed was a primary server of a certain shard or multiple shards, then new primary is elected for the required shard, where in the server with the most logs for the respective shard is chosen as the primary server
 
 Implementation: Utilizes mutex locks for shared data structures to prevent race conditions during server addition or removal. 
 
@@ -104,15 +110,19 @@ Used Sorted Containers (similar to sets in C++) to find nearest server for a cli
 ### Timeout in /rm endpoint:
 After deleting the entries from the data structures in the load balancer, a timeout of 20s is set in order to complete any pending client requests associated with the server. After the timeout is over, the container is finally stopped and removed. This is similar to how a TCP connection works after receving a FIN request, as it waits for all pending TCP packets.
 
-### Update index
-We used an update index for each shard to keep track if any index of that shard is updated (via /update or /del endpoint). This is done so that when a read request comes, and if update index lies between the range of the request, then the request is served from excluding the index under update.
+<!-- ### Update index
+We used an update index for each shard to keep track if any index of that shard is updated (via /update or /del endpoint). This is done so that when a read request comes, and if update index lies between the range of the request, then the request is served from excluding the index under update. -->
+
+### Decision endpoint:
+This endpoint is implemented in the servers, which is used by the primary server to notify secondary servers to commit or reject the previously requested query based on the number of responses received by the primary server for the request.
+
 
 ### Mutex Locks
 Shard specific mutex locks are used for write, update and delete requests need to be served from the shard. This is done to ensure that only one thread can access the shard at a time. Whereas, for read requests, the shard is accessed without any locks.
 Also, a mutex lock is used for the server_id_to_container map to ensure that only one thread can access the map at a time. It is used in init, add, rm and heartbeat endpoints.
 
-### Maintaining valid index in server
-We maintain a valid index for each shard in each server. This is done to ensure that whenever a read request arrives a particular server, it servers only the requests which are committed throughout all the replicas of the server. So, when a write request comes, it is first committed to all the replicas and then the valid index is updated in all the servers. This ensures that the server serves only the requests which are committed throughout all the replicas. For this purpose, we used another endpoint in the server.
+<!-- ### Maintaining valid index in server
+We maintain a valid index for each shard in each server. This is done to ensure that whenever a read request arrives a particular server, it servers only the requests which are committed throughout all the replicas of the server. So, when a write request comes, it is first committed to all the replicas and then the valid index is updated in all the servers. This ensures that the server serves only the requests which are committed throughout all the replicas. For this purpose, we used another endpoint in the server. -->
 
 
 ## 5. New Hashing function
@@ -120,6 +130,17 @@ We've introduced prime multipliers for added complexity. Using prime numbers hel
 We've applied bitwise XOR with a magic number (0x5F3759DF). This bitwise operation can help improve the distribution of hash values.
 Introduced different constant addition values for each hash function.
 Used a different method of mixing bits by combining addition and XOR operations.
+
+## 6. New WAL mechanism
+Each server maintains log files for each shard. When a non-read request arrives, it is appended in the logs and only when the commit request arrives, the respective request is executed and committed.
+The primary server is responsible for managing the commition of requests. The request is first sent to all secondary servers and if responses are received from majority of servers, it sends commit request to secondary servers, else asks not to execute/commit.
+
+
+## 7. Management
+Load Balancer: Receives and manages all requests from clients
+Shard Manager: Manages heartbeat, addition and removal of servers, which includes election and management of primary servers.
+Primary Server: Responsible for management of execution of non read requests on all secondary servers
+
 
 
 # Analysis
